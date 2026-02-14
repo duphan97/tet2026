@@ -16,8 +16,8 @@
                 extend: {
                     colors: {
                         gold: '#FFD700',
-                        red: {
-                            650: '#C62828', // Màu đỏ đậm lì xì
+                        blue: {
+                            custom: '#3b82f6', // Xanh chủ đạo
                         }
                     },
                     animation: {
@@ -38,8 +38,8 @@
     <style>
         body {
             font-family: 'Segoe UI', Roboto, sans-serif;
-            /* Background đỏ tết */
-            background: radial-gradient(circle at center, #D32F2F, #8E0000); 
+            /* Tone nền Xanh Dương Nhạt (Gradient) */
+            background: radial-gradient(circle at center, #e0f2fe, #60a5fa); 
             min-height: 100vh;
             overflow: hidden;
             touch-action: manipulation;
@@ -50,6 +50,15 @@
 
         .fade-in { animation: fadeIn 0.3s ease-out forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        
+        /* Cố định tỷ lệ khung hình vòng quay để không bị méo */
+        .wheel-container {
+            aspect-ratio: 1 / 1;
+            border-radius: 50%;
+            /* Ngăn chặn biến dạng */
+            flex-shrink: 0; 
+            -webkit-mask-image: -webkit-radial-gradient(white, black); /* Fix viền răng cưa trên mobile */
+        }
     </style>
 </head>
 <body>
@@ -85,11 +94,11 @@
 
         // --- 2. COMPONENTS ---
 
-        // Icon Bánh răng (Góc dưới phải)
+        // Nút Cài đặt (Góc dưới phải)
         const SettingsButton = ({ onClick }) => (
             <div 
                 onClick={onClick} 
-                className="fixed bottom-6 right-6 z-40 cursor-pointer p-3 bg-black/40 hover:bg-black/60 rounded-full transition-all backdrop-blur-md shadow-lg text-white border border-white/20 active:scale-95"
+                className="fixed bottom-6 right-6 z-40 cursor-pointer p-3 bg-white/30 hover:bg-white/50 rounded-full transition-all backdrop-blur-md shadow-lg text-blue-900 border border-white/40 active:scale-95"
             >
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
@@ -98,28 +107,26 @@
             </div>
         );
 
-        // Kim chỉ MÀU ĐỎ (Red Pointer) - Đã chỉnh nhỏ lại
+        // Kim chỉ kết quả (Đã chỉnh vị trí vào sâu hơn bên trái)
         const RedPointer = () => (
-            <div className="absolute top-1/2 right-[-18px] md:right-[-28px] -translate-y-1/2 z-30 w-10 h-8 md:w-14 md:h-10 filter drop-shadow-md pointer-events-none">
+            <div className="absolute top-1/2 right-[-5px] md:right-[-10px] -translate-y-1/2 z-30 w-10 h-8 md:w-14 md:h-10 filter drop-shadow-md pointer-events-none">
                 <svg viewBox="0 0 100 60" className="w-full h-full">
                     <defs>
                         <linearGradient id="redMetal" x1="0%" y1="0%" x2="0%" y2="100%">
-                            <stop offset="0%" style={{stopColor:'#ef4444', stopOpacity:1}} /> {/* Red-500 */}
-                            <stop offset="50%" style={{stopColor:'#991b1b', stopOpacity:1}} /> {/* Red-800 */}
+                            <stop offset="0%" style={{stopColor:'#ef4444', stopOpacity:1}} />
+                            <stop offset="50%" style={{stopColor:'#991b1b', stopOpacity:1}} />
                             <stop offset="100%" style={{stopColor:'#ef4444', stopOpacity:1}} />
                         </linearGradient>
                         <filter id="shadow">
                             <feDropShadow dx="1" dy="1" stdDeviation="1" floodColor="#000" floodOpacity="0.5"/>
                         </filter>
                     </defs>
-                    {/* Vẽ mũi tên hướng từ phải sang trái */}
                     <path 
                         d="M0 30 L100 0 L85 30 L100 60 Z" 
                         fill="url(#redMetal)" 
                         stroke="#7f1d1d" 
                         strokeWidth="2"
                     />
-                    {/* Highlight */}
                     <path d="M10 30 L90 5 L80 30 Z" fill="rgba(255,255,255,0.3)" />
                 </svg>
             </div>
@@ -139,7 +146,7 @@
                     y: Math.random() * canvas.height - canvas.height,
                     vx: Math.random() * 4 - 2,
                     vy: Math.random() * 4 + 2,
-                    color: ['#FFD700', '#FF0000', '#FFFFFF'][Math.floor(Math.random()*3)],
+                    color: ['#FFD700', '#FF0000', '#FFFFFF', '#3b82f6'][Math.floor(Math.random()*4)],
                     size: Math.random() * 8 + 4,
                     rotation: Math.random() * 360
                 }));
@@ -177,10 +184,10 @@
             const [winResult, setWinResult] = useState(null);
             const [audio] = useState(new Audio('Congrat.mp3'));
 
-            // Màu nền: Trắng xen kẽ Vàng nhạt (Tạo sự sang trọng)
+            // Màu nền vòng quay: Trắng và Đỏ nhạt (hợp với nền xanh)
             const wheelBackground = `conic-gradient(
                 ${WHEEL_SEGMENTS.map((seg, i) => {
-                    const color = i % 2 === 0 ? '#ffffff' : '#fef3c7'; 
+                    const color = i % 2 === 0 ? '#ffffff' : '#fecaca'; 
                     return `${color} ${i * SEGMENT_ANGLE}deg ${(i + 1) * SEGMENT_ANGLE}deg`;
                 }).join(', ')}
             )`;
@@ -192,7 +199,6 @@
                 if (savedIndex) setCurrentSpinIndex(parseInt(savedIndex));
             }, []);
 
-            // Helper để thay đổi số lượt (Stepper)
             const changeTotalSpins = (delta) => {
                 const newVal = Math.max(1, config.totalSpins + delta);
                 const newRules = [...config.rules];
@@ -229,7 +235,7 @@
                 if (validSegs.length === 0) { alert("Cấu hình lỗi: Không có giải thưởng!"); return; }
                 const target = validSegs[Math.floor(Math.random() * validSegs.length)];
 
-                // Tính toán góc quay
+                // Logic tính góc quay chuẩn xác
                 const segmentCenter = (target.idx * SEGMENT_ANGLE) + HALF_SEGMENT; 
                 const pointerPos = 90; // Kim ở 3h
                 const extraSpins = 360 * (Math.floor(Math.random() * 4) + 6); // 6-10 vòng
@@ -257,46 +263,44 @@
                 }, 5000);
             };
 
-            // Tính hiển thị lượt quay hiện tại (Reset về 1 nếu quá vòng)
             const displaySpinCount = (currentSpinIndex % config.totalSpins) + 1;
 
             return (
-                <div className="min-h-screen relative flex flex-col items-center pt-6 overflow-hidden">
+                <div className="min-h-screen relative flex flex-col items-center pt-8 overflow-hidden">
                     
-                    {/* TIÊU ĐỀ */}
-                    <div className="z-10 text-center mb-6">
-                        <h1 className="text-[60px] leading-tight font-black text-[#FFD700] drop-shadow-[0_4px_0_#8B0000] uppercase font-serif" style={{textShadow: '2px 2px 0 #000'}}>
+                    {/* TIÊU ĐỀ: Lì Xì (Màu Đỏ trên nền Xanh) */}
+                    <div className="z-10 text-center mb-8">
+                        <h1 className="text-[60px] leading-tight font-black text-red-600 drop-shadow-[2px_2px_0_#FFF] uppercase font-serif tracking-tighter">
                             LÌ XÌ
                         </h1>
-                        <div className="text-3xl font-bold text-white uppercase tracking-widest drop-shadow-md">
+                        <div className="text-2xl font-bold text-blue-900 uppercase tracking-widest drop-shadow-sm bg-white/30 px-4 py-1 rounded-full">
                             Tết Bính Ngọ
                         </div>
-                        <div className="mt-2 inline-block px-4 py-1 bg-black/20 rounded-full text-white text-sm font-medium border border-white/20">
-                            Lượt quay: <span className="text-yellow-300 font-bold text-lg">{displaySpinCount}</span> / {config.totalSpins}
-                        </div>
+                        {/* Đã xóa hiển thị số lượt quay ở đây */}
                     </div>
 
-                    {/* SETTINGS BUTTON (Bottom Right) */}
+                    {/* SETTINGS BUTTON */}
                     <SettingsButton onClick={() => setShowSettings(!showSettings)} />
 
                     {/* KHU VỰC VÒNG QUAY */}
                     <div className="relative mt-2">
-                        {/* Wrapper chính: Padding right để chừa chỗ cho kim */}
-                        <div className="relative w-[340px] h-[340px] md:w-[450px] md:h-[450px] pr-4">
+                        {/* Wrapper chính: pr-8 để đẩy toàn bộ vòng tròn sang trái, chừa chỗ cho kim */}
+                        <div className="relative w-[340px] h-[340px] md:w-[450px] md:h-[450px] pr-8 box-content">
                             
-                            {/* 1. KIM ĐỎ (Red Pointer) */}
+                            {/* 1. KIM ĐỎ */}
+                            {/* right-[-5px] để kim thụt vào trong frame, tránh bị cắt */}
                             <RedPointer />
 
                             {/* 2. VÒNG TRÒN XOAY */}
                             <div 
-                                className="w-full h-full rounded-full shadow-[0_0_20px_rgba(0,0,0,0.4)] border-[6px] border-[#FFD700] relative overflow-hidden"
+                                className="wheel-container w-full h-full shadow-[0_10px_30px_rgba(0,0,0,0.2)] border-[8px] border-white relative overflow-hidden bg-white"
                                 style={{
                                     background: wheelBackground,
                                     transform: `rotate(${rotation}deg)`,
                                     transition: isSpinning ? 'transform 5s cubic-bezier(0.2, 0, 0.2, 1)' : 'none'
                                 }}
                             >
-                                <div className="absolute inset-0 rounded-full shadow-[inset_0_0_30px_rgba(0,0,0,0.2)] pointer-events-none z-10"></div>
+                                <div className="absolute inset-0 rounded-full shadow-[inset_0_0_20px_rgba(0,0,0,0.1)] pointer-events-none z-10"></div>
 
                                 {/* Render Múi */}
                                 {WHEEL_SEGMENTS.map((seg, i) => {
@@ -309,27 +313,20 @@
                                             className="absolute top-0 left-0 w-full h-full pointer-events-none"
                                             style={{ transform: `rotate(${centerAngle}deg)` }}
                                         >
-                                            {/* Container nội dung */}
-                                            <div className="absolute top-0 left-1/2 -translate-x-1/2 h-1/2 flex flex-col pt-3 origin-bottom">
-                                                
-                                                {/* ẢNH TIỀN: Quan trọng - xoay 90 độ */}
+                                            <div className="absolute top-0 left-1/2 -translate-x-1/2 h-1/2 flex flex-col pt-4 origin-bottom">
                                                 <div className="flex flex-col items-center">
                                                     <img 
                                                         src={seg.img} 
-                                                        // rotate-90: Xoay dọc theo nan hoa
-                                                        // object-contain: Giữ tỉ lệ
-                                                        className="w-[70px] h-[40px] md:w-[90px] md:h-[50px] object-contain drop-shadow-sm transform rotate-90 translate-y-2" 
+                                                        className="w-[70px] h-[40px] md:w-[90px] md:h-[50px] object-contain drop-shadow-sm transform rotate-90 translate-y-3" 
                                                         onError={(e) => {
                                                             e.target.style.display='none'; 
                                                             e.target.nextSibling.style.display='block'
                                                         }}
                                                     />
-                                                    {/* Fallback Text */}
                                                     <span className="hidden text-[10px] font-bold text-red-700 bg-white/90 px-1 rounded mt-6 rotate-180">
                                                         {seg.label}
                                                     </span>
                                                 </div>
-
                                             </div>
                                         </div>
                                     );
@@ -339,25 +336,25 @@
                             {/* 3. LOGO TRUNG TÂM */}
                             <div 
                                 onClick={handleSpin}
-                                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 w-28 h-28 md:w-36 md:h-36 bg-red-700 rounded-full shadow-lg flex items-center justify-center cursor-pointer border-4 border-[#FFD700] active:scale-95 transition-transform animate-pulse-glow"
+                                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 w-28 h-28 md:w-36 md:h-36 bg-white rounded-full shadow-lg flex items-center justify-center cursor-pointer border-4 border-blue-200 active:scale-95 transition-transform"
                             >
-                                <img src="Logo.png" className="w-full h-full object-cover rounded-full p-1 bg-white" 
-                                     onError={(e)=>{e.target.style.display='none'; e.target.parentNode.innerHTML='<b class="text-white text-2xl font-bold">QUAY</b>'}}/>
+                                <img src="Logo.png" className="w-full h-full object-cover rounded-full p-1" 
+                                     onError={(e)=>{e.target.style.display='none'; e.target.parentNode.innerHTML='<b class="text-red-600 text-2xl font-bold">QUAY</b>'}}/>
                             </div>
                         </div>
                     </div>
 
-                    {/* OVERLAY TRÚNG THƯỞNG */}
+                    {/* OVERLAY KẾT QUẢ */}
                     {showOverlay && (
-                        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90 fade-in" onClick={()=>{setShowOverlay(false); audio.pause();}}>
+                        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/80 fade-in" onClick={()=>{setShowOverlay(false); audio.pause();}}>
                             <Confetti isActive={true} />
-                            <div className="text-center animate-bounce-slow">
-                                <h2 className="text-5xl md:text-6xl text-[#FFD700] font-black mb-6 drop-shadow-[0_4px_0_#b91c1c] uppercase">CHÚC MỪNG!</h2>
-                                <div className="relative inline-block">
-                                    <div className="absolute inset-0 bg-[#FFD700] blur-3xl opacity-40 rounded-full"></div>
-                                    <img src={winResult.img} className="relative z-10 w-72 md:w-96 object-contain drop-shadow-2xl" />
+                            <div className="text-center animate-bounce-slow px-4">
+                                <h2 className="text-5xl md:text-6xl text-yellow-400 font-black mb-6 drop-shadow-[0_4px_0_#b91c1c] uppercase">CHÚC MỪNG!</h2>
+                                <div className="relative inline-block p-10">
+                                    <div className="absolute inset-0 bg-white blur-3xl opacity-20 rounded-full"></div>
+                                    <img src={winResult.img} className="relative z-10 w-64 md:w-96 object-contain drop-shadow-2xl" />
                                 </div>
-                                <div className="mt-8 text-3xl font-bold text-white">Bạn nhận được <span className="text-yellow-400">{winResult.label}</span></div>
+                                <div className="mt-4 text-2xl md:text-3xl font-bold text-white">Bạn nhận được <span className="text-yellow-300 text-4xl block mt-2">{winResult.label}</span></div>
                                 <p className="text-white/60 mt-8 text-sm animate-pulse">Chạm vào màn hình để đóng</p>
                             </div>
                         </div>
@@ -369,59 +366,50 @@
                             <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm border border-gray-200 fade-in relative">
                                 <button onClick={()=>setShowSettings(false)} className="absolute top-4 right-4 text-gray-400 hover:text-red-500 text-xl font-bold">✕</button>
                                 
-                                <h3 className="text-xl font-bold text-red-700 border-b pb-3 mb-4 text-center uppercase">Cấu hình Lì Xì</h3>
+                                <h3 className="text-xl font-bold text-blue-800 border-b pb-3 mb-4 text-center uppercase">Cấu hình Lì Xì</h3>
                                 
-                                <div className="space-y-4 max-h-[60vh] overflow-y-auto no-scrollbar">
-                                    {/* Set Số Lượt Quay - Stepper */}
+                                <div className="mb-4 text-center bg-blue-50 p-2 rounded-lg border border-blue-100">
+                                    <span className="text-gray-600 font-medium">Lượt quay hiện tại: </span>
+                                    <span className="text-red-600 font-bold text-xl ml-1">{displaySpinCount}</span>
+                                    <span className="text-gray-400 mx-1">/</span>
+                                    <span className="text-gray-800 font-bold">{config.totalSpins}</span>
+                                </div>
+
+                                <div className="space-y-4 max-h-[50vh] overflow-y-auto no-scrollbar">
                                     <div className="flex items-center justify-between bg-gray-50 p-3 rounded-lg border">
                                         <label className="font-semibold text-gray-700">Set số lượt quay:</label>
                                         <div className="flex items-center bg-white border rounded-lg shadow-sm">
-                                            <button 
-                                                onClick={() => changeTotalSpins(-1)}
-                                                className="w-10 h-10 flex items-center justify-center text-xl font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-l-lg active:bg-red-200"
-                                            >-</button>
+                                            <button onClick={() => changeTotalSpins(-1)} className="w-10 h-10 flex items-center justify-center text-xl font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-l-lg">-</button>
                                             <span className="w-12 text-center font-bold text-lg text-gray-800">{config.totalSpins}</span>
-                                            <button 
-                                                onClick={() => changeTotalSpins(1)}
-                                                className="w-10 h-10 flex items-center justify-center text-xl font-bold text-green-600 bg-green-50 hover:bg-green-100 rounded-r-lg active:bg-green-200"
-                                            >+</button>
+                                            <button onClick={() => changeTotalSpins(1)} className="w-10 h-10 flex items-center justify-center text-xl font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-r-lg">+</button>
                                         </div>
                                     </div>
 
-                                    {/* Danh sách lượt */}
                                     {config.rules.map((rule, idx) => (
                                         <div key={idx} className="bg-gray-50 p-3 rounded-lg border border-gray-200">
                                             <div className="flex justify-between items-center mb-2">
-                                                <div className="text-sm font-bold text-gray-700 bg-gray-200 px-2 py-0.5 rounded">Lượt {idx+1}</div>
+                                                <div className="text-sm font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded">Lượt {idx+1}</div>
                                             </div>
                                             <div className="grid grid-cols-2 gap-3">
                                                 <div>
-                                                    <label className="text-xs text-gray-500 block mb-1">Tối thiểu</label>
-                                                    <select 
-                                                        value={rule.min} 
-                                                        onChange={(e)=>{
+                                                    <label className="text-xs text-gray-500 block mb-1">Min</label>
+                                                    <select value={rule.min} onChange={(e)=>{
                                                             const newRules = [...config.rules];
                                                             newRules[idx].min = parseInt(e.target.value);
                                                             if(newRules[idx].max < newRules[idx].min) newRules[idx].max = newRules[idx].min;
                                                             setConfig({...config, rules: newRules});
-                                                        }} 
-                                                        className="w-full p-2 border rounded-md text-sm font-medium focus:ring-2 focus:ring-red-500 outline-none"
-                                                    >
+                                                        }} className="w-full p-2 border rounded-md text-sm outline-none">
                                                         {MONEY_VALUES.map(v=><option key={v} value={v}>{v}k</option>)}
                                                     </select>
                                                 </div>
                                                 <div>
-                                                    <label className="text-xs text-gray-500 block mb-1">Tối đa</label>
-                                                    <select 
-                                                        value={rule.max} 
-                                                        onChange={(e)=>{
+                                                    <label className="text-xs text-gray-500 block mb-1">Max</label>
+                                                    <select value={rule.max} onChange={(e)=>{
                                                             const newRules = [...config.rules];
                                                             newRules[idx].max = parseInt(e.target.value);
                                                             if(newRules[idx].min > newRules[idx].max) newRules[idx].min = newRules[idx].max;
                                                             setConfig({...config, rules: newRules});
-                                                        }} 
-                                                        className="w-full p-2 border rounded-md text-sm font-medium focus:ring-2 focus:ring-red-500 outline-none"
-                                                    >
+                                                        }} className="w-full p-2 border rounded-md text-sm outline-none">
                                                         {MONEY_VALUES.map(v=><option key={v} value={v}>{v}k</option>)}
                                                     </select>
                                                 </div>
@@ -430,9 +418,9 @@
                                     ))}
                                 </div>
                                 
-                                <div className="grid grid-cols-2 gap-3 mt-6 pt-4 border-t">
-                                    <button onClick={handleReset} className="py-3 rounded-lg font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition">Mặc định</button>
-                                    <button onClick={handleSaveConfig} className="py-3 rounded-lg font-bold text-white bg-red-600 hover:bg-red-700 shadow-lg shadow-red-200 transition">Lưu Lại</button>
+                                <div className="grid grid-cols-2 gap-3 mt-4 pt-4 border-t">
+                                    <button onClick={handleReset} className="py-2 rounded-lg font-bold text-gray-600 bg-gray-100 hover:bg-gray-200">Mặc định</button>
+                                    <button onClick={handleSaveConfig} className="py-2 rounded-lg font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200">Lưu Lại</button>
                                 </div>
                             </div>
                         </div>
