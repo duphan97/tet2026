@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Vòng Quay May Mắn - Lucky Wheel Pro</title>
+    <title>Lì Xì Tết Bính Ngọ</title>
 
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -15,17 +15,20 @@
             theme: {
                 extend: {
                     colors: {
-                        primary: '#E63946',
-                        secondary: '#F1FAEE',
                         gold: '#FFD700',
-                        metal: '#A8A29E',
+                        red: {
+                            650: '#C62828', // Màu đỏ đậm lì xì
+                        }
                     },
                     animation: {
                         'bounce-slow': 'bounce 3s infinite',
+                        'pulse-glow': 'pulseGlow 2s infinite',
                     },
-                    boxShadow: {
-                        'glow': '0 0 20px rgba(255, 215, 0, 0.6)',
-                        'inner-depth': 'inset 0 0 20px rgba(0,0,0,0.5)',
+                    keyframes: {
+                        pulseGlow: {
+                            '0%, 100%': { boxShadow: '0 0 10px #FFD700' },
+                            '50%': { boxShadow: '0 0 25px #FFD700' },
+                        }
                     }
                 }
             }
@@ -35,24 +38,18 @@
     <style>
         body {
             font-family: 'Segoe UI', Roboto, sans-serif;
-            background: radial-gradient(circle at center, #2b32b2, #1488cc); /* Màu nền xanh dương hiện đại */
+            /* Background đỏ tết */
+            background: radial-gradient(circle at center, #D32F2F, #8E0000); 
             min-height: 100vh;
             overflow: hidden;
             touch-action: manipulation;
         }
 
-        /* Ẩn scrollbar */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* Animation Overlay */
         .fade-in { animation: fadeIn 0.3s ease-out forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-        
-        /* Hiệu ứng Metal cho Kim */
-        .metal-gradient {
-            background: linear-gradient(to bottom, #f1f5f9 0%, #94a3b8 50%, #f1f5f9 100%);
-        }
     </style>
 </head>
 <body>
@@ -65,24 +62,20 @@
         // --- 1. DATA CONFIG ---
         const MONEY_VALUES = [500, 200, 100, 50, 20];
 
-        // 8 phần tử gốc -> nhân đôi thành 16
         const BASE_SEGMENTS = [
-            { value: 500, label: '500k', img: '500k.png', color: '#FFF' },
-            { value: 200, label: '200k', img: '200k.png', color: '#FFEBEE' },
-            { value: 100, label: '100k', img: '100k.png', color: '#FFF' },
-            { value: 50, label: '50k', img: '50k.png', color: '#FFEBEE' },
-            { value: 20, label: '20k', img: '20k.png', color: '#FFF' },
-            { value: 100, label: '100k', img: '100k.png', color: '#FFEBEE' },
-            { value: 50, label: '50k', img: '50k.png', color: '#FFF' },
-            { value: 20, label: '20k', img: '20k.png', color: '#FFEBEE' },
+            { value: 500, label: '500k', img: '500k.png' },
+            { value: 200, label: '200k', img: '200k.png' },
+            { value: 100, label: '100k', img: '100k.png' },
+            { value: 50, label: '50k', img: '50k.png' },
+            { value: 20, label: '20k', img: '20k.png' },
+            { value: 100, label: '100k', img: '100k.png' },
+            { value: 50, label: '50k', img: '50k.png' },
+            { value: 20, label: '20k', img: '20k.png' },
         ];
 
-        // Tạo 16 phần tử
-        const WHEEL_SEGMENTS = [...BASE_SEGMENTS, ...BASE_SEGMENTS];
-        const SEGMENT_COUNT = WHEEL_SEGMENTS.length; // 16
+        const WHEEL_SEGMENTS = [...BASE_SEGMENTS, ...BASE_SEGMENTS]; // 16 phần
+        const SEGMENT_COUNT = WHEEL_SEGMENTS.length;
         const SEGMENT_ANGLE = 360 / SEGMENT_COUNT; // 22.5 độ
-        
-        // Offset để căn giữa: Mỗi ô rộng 22.5 độ, tâm ô nằm ở 11.25 độ
         const HALF_SEGMENT = SEGMENT_ANGLE / 2; 
 
         const DEFAULT_CONFIG = {
@@ -90,44 +83,49 @@
             rules: [{ id: 1, min: 50, max: 50 }]
         };
 
-        // --- 2. SUB-COMPONENTS ---
+        // --- 2. COMPONENTS ---
 
-        // Icon Bánh răng
-        const GearIcon = ({ onClick }) => (
-            <div onClick={onClick} className="absolute top-4 right-4 z-40 cursor-pointer p-2 bg-white/20 hover:bg-white/40 rounded-full transition-all backdrop-blur-sm shadow-lg text-white">
-                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        // Icon Bánh răng (Góc dưới phải)
+        const SettingsButton = ({ onClick }) => (
+            <div 
+                onClick={onClick} 
+                className="fixed bottom-6 right-6 z-40 cursor-pointer p-3 bg-black/40 hover:bg-black/60 rounded-full transition-all backdrop-blur-md shadow-lg text-white border border-white/20 active:scale-95"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
                     <circle cx="12" cy="12" r="3"></circle>
                 </svg>
             </div>
         );
 
-        // Kim chỉ kim loại (SVG)
-        const MetalPointer = () => (
-            <div className="absolute top-1/2 right-[-25px] md:right-[-35px] -translate-y-1/2 z-30 w-16 h-12 md:w-20 md:h-14 filter drop-shadow-lg">
+        // Kim chỉ MÀU ĐỎ (Red Pointer) - Đã chỉnh nhỏ lại
+        const RedPointer = () => (
+            <div className="absolute top-1/2 right-[-18px] md:right-[-28px] -translate-y-1/2 z-30 w-10 h-8 md:w-14 md:h-10 filter drop-shadow-md pointer-events-none">
                 <svg viewBox="0 0 100 60" className="w-full h-full">
                     <defs>
-                        <linearGradient id="metalGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                            <stop offset="0%" style={{stopColor:'#e2e8f0', stopOpacity:1}} />
-                            <stop offset="50%" style={{stopColor:'#64748b', stopOpacity:1}} />
-                            <stop offset="100%" style={{stopColor:'#e2e8f0', stopOpacity:1}} />
+                        <linearGradient id="redMetal" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" style={{stopColor:'#ef4444', stopOpacity:1}} /> {/* Red-500 */}
+                            <stop offset="50%" style={{stopColor:'#991b1b', stopOpacity:1}} /> {/* Red-800 */}
+                            <stop offset="100%" style={{stopColor:'#ef4444', stopOpacity:1}} />
                         </linearGradient>
                         <filter id="shadow">
-                            <feDropShadow dx="2" dy="2" stdDeviation="2" floodColor="#000" floodOpacity="0.5"/>
+                            <feDropShadow dx="1" dy="1" stdDeviation="1" floodColor="#000" floodOpacity="0.5"/>
                         </filter>
                     </defs>
+                    {/* Vẽ mũi tên hướng từ phải sang trái */}
                     <path 
                         d="M0 30 L100 0 L85 30 L100 60 Z" 
-                        fill="url(#metalGrad)" 
-                        stroke="#475569" 
-                        strokeWidth="1"
+                        fill="url(#redMetal)" 
+                        stroke="#7f1d1d" 
+                        strokeWidth="2"
                     />
-                    <path d="M10 30 L90 5 L80 30 Z" fill="rgba(255,255,255,0.4)" />
+                    {/* Highlight */}
+                    <path d="M10 30 L90 5 L80 30 Z" fill="rgba(255,255,255,0.3)" />
                 </svg>
             </div>
         );
 
-        // Confetti (Pháo giấy)
+        // Confetti
         const Confetti = ({ isActive }) => {
             const canvasRef = useRef(null);
             useEffect(() => {
@@ -141,7 +139,7 @@
                     y: Math.random() * canvas.height - canvas.height,
                     vx: Math.random() * 4 - 2,
                     vy: Math.random() * 4 + 2,
-                    color: `hsl(${Math.random() * 360}, 100%, 50%)`,
+                    color: ['#FFD700', '#FF0000', '#FFFFFF'][Math.floor(Math.random()*3)],
                     size: Math.random() * 8 + 4,
                     rotation: Math.random() * 360
                 }));
@@ -175,15 +173,14 @@
             const [rotation, setRotation] = useState(0);
             const [isSpinning, setIsSpinning] = useState(false);
             const [showOverlay, setShowOverlay] = useState(false);
-            const [showSettings, setShowSettings] = useState(false); // Ẩn hiện setting
+            const [showSettings, setShowSettings] = useState(false);
             const [winResult, setWinResult] = useState(null);
             const [audio] = useState(new Audio('Congrat.mp3'));
 
-            // Background Gradient cho vòng quay (Tạo hình Pizza)
-            // Màu xen kẽ: Đỏ nhạt (#FFEBEE) và Trắng (#FFFFFF) hoặc custom
+            // Màu nền: Trắng xen kẽ Vàng nhạt (Tạo sự sang trọng)
             const wheelBackground = `conic-gradient(
                 ${WHEEL_SEGMENTS.map((seg, i) => {
-                    const color = i % 2 === 0 ? '#ffffff' : '#fecaca'; // Trắng vs Đỏ nhạt
+                    const color = i % 2 === 0 ? '#ffffff' : '#fef3c7'; 
                     return `${color} ${i * SEGMENT_ANGLE}deg ${(i + 1) * SEGMENT_ANGLE}deg`;
                 }).join(', ')}
             )`;
@@ -195,14 +192,25 @@
                 if (savedIndex) setCurrentSpinIndex(parseInt(savedIndex));
             }, []);
 
-            const handleSaveConfig = (newConfig) => {
-                setConfig(newConfig);
-                localStorage.setItem('wheelConfig', JSON.stringify(newConfig));
-                setShowSettings(false); // Đóng setting sau khi lưu
+            // Helper để thay đổi số lượt (Stepper)
+            const changeTotalSpins = (delta) => {
+                const newVal = Math.max(1, config.totalSpins + delta);
+                const newRules = [...config.rules];
+                if(newVal > newRules.length) {
+                    for(let i=newRules.length; i<newVal; i++) newRules.push({id: i+1, min:50, max:50});
+                } else {
+                    newRules.length = newVal;
+                }
+                setConfig({...config, totalSpins: newVal, rules: newRules});
+            };
+
+            const handleSaveConfig = () => {
+                localStorage.setItem('wheelConfig', JSON.stringify(config));
+                setShowSettings(false);
             };
 
             const handleReset = () => {
-                if(confirm("Reset toàn bộ?")) {
+                if(confirm("Reset toàn bộ cài đặt?")) {
                     setConfig(DEFAULT_CONFIG);
                     setCurrentSpinIndex(0);
                     localStorage.removeItem('wheelConfig');
@@ -213,41 +221,24 @@
             const handleSpin = () => {
                 if (isSpinning) return;
 
-                // 1. Xác định kết quả
                 const effectiveIndex = currentSpinIndex % config.totalSpins;
                 const rule = config.rules[effectiveIndex];
                 const validSegs = WHEEL_SEGMENTS.map((s, i) => ({...s, idx: i}))
                     .filter(s => s.value >= rule.min && s.value <= rule.max);
 
-                if (validSegs.length === 0) { alert("Cấu hình lỗi: Không có giải trong khoảng Min-Max"); return; }
+                if (validSegs.length === 0) { alert("Cấu hình lỗi: Không có giải thưởng!"); return; }
                 const target = validSegs[Math.floor(Math.random() * validSegs.length)];
 
-                // 2. Tính toán góc quay (VẬT LÝ)
-                // Kim ở vị trí 3h (90 độ).
-                // Tâm của ô kết quả (target) nằm ở: target.idx * 22.5 + 11.25 (offset giữa ô)
-                // Ta cần đưa góc này về đúng vị trí 90 độ.
-                
-                const segmentCenter = (target.idx * SEGMENT_ANGLE) + HALF_SEGMENT; // Góc trung tâm ô
-                const pointerPos = 90; // Kim ở 90 độ
-                
-                // Số vòng quay thêm (5-8 vòng)
-                const extraSpins = 360 * (Math.floor(Math.random() * 4) + 5);
-                
-                // Công thức: Đang ở `rotation`. Cần xoay thêm `delta`.
-                // Đích đến = (Góc bù để segment về 0) + (Đưa 0 về 90)
-                // targetRotation = Current - (Current % 360) + extraSpins + (pointerPos - segmentCenter);
-                // Lưu ý: Do xoay chiều kim đồng hồ, giá trị rotation tăng dần.
-                // Phải tính ngược: Muốn segmentCenter khớp pointerPos.
-                // Góc cần xoay = 360 - segmentCenter + pointerPos.
+                // Tính toán góc quay
+                const segmentCenter = (target.idx * SEGMENT_ANGLE) + HALF_SEGMENT; 
+                const pointerPos = 90; // Kim ở 3h
+                const extraSpins = 360 * (Math.floor(Math.random() * 4) + 6); // 6-10 vòng
                 
                 const currentRotMod = rotation % 360;
                 let dist = (pointerPos - segmentCenter);
-                if (dist < 0) dist += 360; // Đảm bảo quay tới
-                
-                // Thêm một chút random trong phạm vi ô (để không dừng cứng nhắc ở giữa)
-                // Ô rộng 22.5 độ -> an toàn là +/- 8 độ từ tâm
-                const randomOffset = (Math.random() * 16) - 8;
-                
+                if (dist < 0) dist += 360;
+
+                const randomOffset = (Math.random() * 14) - 7; // +/- 7 độ
                 const finalRot = rotation + (360 - currentRotMod) + extraSpins + dist + randomOffset;
 
                 setIsSpinning(true);
@@ -266,90 +257,92 @@
                 }, 5000);
             };
 
-            return (
-                <div className="min-h-screen relative flex flex-col items-center pt-8 overflow-hidden">
-                    
-                    {/* Gear Icon - Settings Toggle */}
-                    <GearIcon onClick={() => setShowSettings(!showSettings)} />
+            // Tính hiển thị lượt quay hiện tại (Reset về 1 nếu quá vòng)
+            const displaySpinCount = (currentSpinIndex % config.totalSpins) + 1;
 
-                    {/* Tiêu đề */}
-                    <div className="z-10 text-center mb-4">
-                        <h1 className="text-4xl md:text-5xl font-black text-white drop-shadow-[0_4px_0_rgba(0,0,0,0.3)] uppercase tracking-wider font-[Arial]">
-                            Vòng Quay <span className="text-yellow-300">Tài Lộc</span>
+            return (
+                <div className="min-h-screen relative flex flex-col items-center pt-6 overflow-hidden">
+                    
+                    {/* TIÊU ĐỀ */}
+                    <div className="z-10 text-center mb-6">
+                        <h1 className="text-[60px] leading-tight font-black text-[#FFD700] drop-shadow-[0_4px_0_#8B0000] uppercase font-serif" style={{textShadow: '2px 2px 0 #000'}}>
+                            LÌ XÌ
                         </h1>
+                        <div className="text-3xl font-bold text-white uppercase tracking-widest drop-shadow-md">
+                            Tết Bính Ngọ
+                        </div>
+                        <div className="mt-2 inline-block px-4 py-1 bg-black/20 rounded-full text-white text-sm font-medium border border-white/20">
+                            Lượt quay: <span className="text-yellow-300 font-bold text-lg">{displaySpinCount}</span> / {config.totalSpins}
+                        </div>
                     </div>
 
-                    {/* VÒNG QUAY CONTAINER */}
-                    <div className="relative mt-4">
-                        {/* Wrapper cố định kích thước */}
-                        <div className="relative w-[340px] h-[340px] md:w-[450px] md:h-[450px]">
+                    {/* SETTINGS BUTTON (Bottom Right) */}
+                    <SettingsButton onClick={() => setShowSettings(!showSettings)} />
+
+                    {/* KHU VỰC VÒNG QUAY */}
+                    <div className="relative mt-2">
+                        {/* Wrapper chính: Padding right để chừa chỗ cho kim */}
+                        <div className="relative w-[340px] h-[340px] md:w-[450px] md:h-[450px] pr-4">
                             
-                            {/* 1. KIM LOẠI (Lớp trên cùng, bên phải) */}
-                            <MetalPointer />
+                            {/* 1. KIM ĐỎ (Red Pointer) */}
+                            <RedPointer />
 
                             {/* 2. VÒNG TRÒN XOAY */}
                             <div 
-                                className="w-full h-full rounded-full shadow-[0_0_30px_rgba(0,0,0,0.5)] border-[8px] border-yellow-500 relative overflow-hidden"
+                                className="w-full h-full rounded-full shadow-[0_0_20px_rgba(0,0,0,0.4)] border-[6px] border-[#FFD700] relative overflow-hidden"
                                 style={{
-                                    background: wheelBackground, // Tạo màu múi Pizza
+                                    background: wheelBackground,
                                     transform: `rotate(${rotation}deg)`,
                                     transition: isSpinning ? 'transform 5s cubic-bezier(0.2, 0, 0.2, 1)' : 'none'
                                 }}
                             >
-                                {/* Shadow tạo chiều sâu bên trong */}
-                                <div className="absolute inset-0 rounded-full shadow-inner-depth pointer-events-none z-10"></div>
+                                <div className="absolute inset-0 rounded-full shadow-[inset_0_0_30px_rgba(0,0,0,0.2)] pointer-events-none z-10"></div>
 
-                                {/* Render Nội dung (Ảnh/Text) */}
+                                {/* Render Múi */}
                                 {WHEEL_SEGMENTS.map((seg, i) => {
-                                    // Góc bắt đầu của ô
                                     const startAngle = i * SEGMENT_ANGLE;
-                                    // Chúng ta cần xoay container đến TÂM của ô để đặt ảnh
-                                    // Tâm ô = startAngle + 11.25 độ
                                     const centerAngle = startAngle + HALF_SEGMENT;
 
                                     return (
                                         <div 
                                             key={i}
                                             className="absolute top-0 left-0 w-full h-full pointer-events-none"
-                                            style={{ 
-                                                transform: `rotate(${centerAngle}deg)`, 
-                                            }}
+                                            style={{ transform: `rotate(${centerAngle}deg)` }}
                                         >
-                                            {/* Container nội dung: Đẩy ra xa tâm một chút */}
-                                            {/* translate(0, -50%) để căn giữa theo trục dọc, sau đó translateY để đẩy ra bán kính */}
-                                            <div 
-                                                className="absolute top-0 left-1/2 -translate-x-1/2 h-1/2 flex flex-col justify-start pt-4 origin-bottom"
-                                            >
-                                                {/* Ảnh/Text: Quan trọng! */}
-                                                {/* Đặt hướng từ tâm ra ngoài */}
+                                            {/* Container nội dung */}
+                                            <div className="absolute top-0 left-1/2 -translate-x-1/2 h-1/2 flex flex-col pt-3 origin-bottom">
+                                                
+                                                {/* ẢNH TIỀN: Quan trọng - xoay 90 độ */}
                                                 <div className="flex flex-col items-center">
                                                     <img 
                                                         src={seg.img} 
-                                                        className="w-10 md:w-14 object-contain drop-shadow-sm transform rotate-180" 
-                                                        style={{maxWidth: 'unset'}}
+                                                        // rotate-90: Xoay dọc theo nan hoa
+                                                        // object-contain: Giữ tỉ lệ
+                                                        className="w-[70px] h-[40px] md:w-[90px] md:h-[50px] object-contain drop-shadow-sm transform rotate-90 translate-y-2" 
                                                         onError={(e) => {
                                                             e.target.style.display='none'; 
                                                             e.target.nextSibling.style.display='block'
                                                         }}
                                                     />
-                                                    {/* Fallback text nếu không có ảnh */}
-                                                    <span className="hidden text-xs font-bold text-red-700 bg-white/90 px-1 rounded rotate-180 mt-1">
+                                                    {/* Fallback Text */}
+                                                    <span className="hidden text-[10px] font-bold text-red-700 bg-white/90 px-1 rounded mt-6 rotate-180">
                                                         {seg.label}
                                                     </span>
                                                 </div>
+
                                             </div>
                                         </div>
                                     );
                                 })}
                             </div>
 
-                            {/* 3. LOGO TRUNG TÂM (Lớp trên cùng) */}
+                            {/* 3. LOGO TRUNG TÂM */}
                             <div 
                                 onClick={handleSpin}
-                                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 w-32 h-32 md:w-36 md:h-36 bg-white rounded-full shadow-[0_0_15px_rgba(0,0,0,0.3)] flex items-center justify-center cursor-pointer border-4 border-red-600 active:scale-95 transition-transform"
+                                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 w-28 h-28 md:w-36 md:h-36 bg-red-700 rounded-full shadow-lg flex items-center justify-center cursor-pointer border-4 border-[#FFD700] active:scale-95 transition-transform animate-pulse-glow"
                             >
-                                <img src="Logo.png" className="w-full h-full object-cover rounded-full" 
-                                     onError={(e)=>{e.target.style.display='none'; e.target.parentNode.innerHTML='<b class="text-red-600 text-2xl">QUAY</b>'}}/>
+                                <img src="Logo.png" className="w-full h-full object-cover rounded-full p-1 bg-white" 
+                                     onError={(e)=>{e.target.style.display='none'; e.target.parentNode.innerHTML='<b class="text-white text-2xl font-bold">QUAY</b>'}}/>
                             </div>
                         </div>
                     </div>
@@ -358,75 +351,89 @@
                     {showOverlay && (
                         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90 fade-in" onClick={()=>{setShowOverlay(false); audio.pause();}}>
                             <Confetti isActive={true} />
-                            <h2 className="text-5xl text-yellow-400 font-bold mb-8 animate-bounce">CHÚC MỪNG!</h2>
-                            <div className="relative">
-                                <div className="absolute inset-0 bg-yellow-400 blur-2xl opacity-50 rounded-full"></div>
-                                <img src={winResult.img} className="relative z-10 w-64 md:w-80 object-contain drop-shadow-2xl" />
+                            <div className="text-center animate-bounce-slow">
+                                <h2 className="text-5xl md:text-6xl text-[#FFD700] font-black mb-6 drop-shadow-[0_4px_0_#b91c1c] uppercase">CHÚC MỪNG!</h2>
+                                <div className="relative inline-block">
+                                    <div className="absolute inset-0 bg-[#FFD700] blur-3xl opacity-40 rounded-full"></div>
+                                    <img src={winResult.img} className="relative z-10 w-72 md:w-96 object-contain drop-shadow-2xl" />
+                                </div>
+                                <div className="mt-8 text-3xl font-bold text-white">Bạn nhận được <span className="text-yellow-400">{winResult.label}</span></div>
+                                <p className="text-white/60 mt-8 text-sm animate-pulse">Chạm vào màn hình để đóng</p>
                             </div>
-                            <p className="text-white mt-10 text-xl font-light">Chạm màn hình để tiếp tục</p>
                         </div>
                     )}
 
-                    {/* PANEL CẤU HÌNH (Ẩn/Hiện) */}
+                    {/* PANEL CẤU HÌNH */}
                     {showSettings && (
-                        <div className="absolute top-16 right-4 z-40 w-80 bg-white rounded-xl shadow-2xl p-4 border border-gray-200 fade-in">
-                            <div className="flex justify-between items-center mb-4 border-b pb-2">
-                                <h3 className="font-bold text-gray-800">Cài đặt lượt quay</h3>
-                                <button onClick={()=>setShowSettings(false)} className="text-gray-400 hover:text-gray-600">✕</button>
-                            </div>
-                            
-                            <div className="mb-4 text-sm text-gray-600 bg-gray-100 p-2 rounded">
-                                Lượt hiện tại: <span className="font-bold text-red-600">{currentSpinIndex + 1}</span>
-                            </div>
-
-                            <div className="space-y-4 max-h-[60vh] overflow-y-auto no-scrollbar">
-                                <div className="flex items-center justify-between">
-                                    <label>Tổng số lượt:</label>
-                                    <input 
-                                        type="number" 
-                                        min="1"
-                                        value={config.totalSpins}
-                                        onChange={(e) => {
-                                            const val = parseInt(e.target.value) || 1;
-                                            const newRules = [...config.rules];
-                                            if(val > newRules.length) {
-                                                for(let i=newRules.length; i<val; i++) newRules.push({id: i+1, min:50, max:50});
-                                            } else {
-                                                newRules.length = val;
-                                            }
-                                            setConfig({...config, totalSpins: val, rules: newRules});
-                                        }}
-                                        className="w-20 p-1 border rounded text-center"
-                                    />
-                                </div>
-                                {config.rules.map((rule, idx) => (
-                                    <div key={idx} className="bg-gray-50 p-2 rounded border">
-                                        <div className="text-xs font-bold text-gray-500 mb-1">Lượt {idx+1}</div>
-                                        <div className="flex gap-2">
-                                            <select value={rule.min} onChange={(e)=>{
-                                                const newRules = [...config.rules];
-                                                newRules[idx].min = parseInt(e.target.value);
-                                                if(newRules[idx].max < newRules[idx].min) newRules[idx].max = newRules[idx].min;
-                                                setConfig({...config, rules: newRules});
-                                            }} className="w-1/2 p-1 border rounded text-sm">
-                                                {MONEY_VALUES.map(v=><option key={v} value={v}>Min: {v}k</option>)}
-                                            </select>
-                                            <select value={rule.max} onChange={(e)=>{
-                                                const newRules = [...config.rules];
-                                                newRules[idx].max = parseInt(e.target.value);
-                                                if(newRules[idx].min > newRules[idx].max) newRules[idx].min = newRules[idx].max;
-                                                setConfig({...config, rules: newRules});
-                                            }} className="w-1/2 p-1 border rounded text-sm">
-                                                {MONEY_VALUES.map(v=><option key={v} value={v}>Max: {v}k</option>)}
-                                            </select>
+                        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={(e) => {if(e.target === e.currentTarget) setShowSettings(false)}}>
+                            <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm border border-gray-200 fade-in relative">
+                                <button onClick={()=>setShowSettings(false)} className="absolute top-4 right-4 text-gray-400 hover:text-red-500 text-xl font-bold">✕</button>
+                                
+                                <h3 className="text-xl font-bold text-red-700 border-b pb-3 mb-4 text-center uppercase">Cấu hình Lì Xì</h3>
+                                
+                                <div className="space-y-4 max-h-[60vh] overflow-y-auto no-scrollbar">
+                                    {/* Set Số Lượt Quay - Stepper */}
+                                    <div className="flex items-center justify-between bg-gray-50 p-3 rounded-lg border">
+                                        <label className="font-semibold text-gray-700">Set số lượt quay:</label>
+                                        <div className="flex items-center bg-white border rounded-lg shadow-sm">
+                                            <button 
+                                                onClick={() => changeTotalSpins(-1)}
+                                                className="w-10 h-10 flex items-center justify-center text-xl font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-l-lg active:bg-red-200"
+                                            >-</button>
+                                            <span className="w-12 text-center font-bold text-lg text-gray-800">{config.totalSpins}</span>
+                                            <button 
+                                                onClick={() => changeTotalSpins(1)}
+                                                className="w-10 h-10 flex items-center justify-center text-xl font-bold text-green-600 bg-green-50 hover:bg-green-100 rounded-r-lg active:bg-green-200"
+                                            >+</button>
                                         </div>
                                     </div>
-                                ))}
-                            </div>
-                            
-                            <div className="flex gap-2 mt-4 pt-2 border-t">
-                                <button onClick={()=>handleSaveConfig(config)} className="flex-1 bg-green-600 text-white py-2 rounded hover:bg-green-700 font-bold">Lưu</button>
-                                <button onClick={handleReset} className="flex-1 bg-gray-200 text-gray-700 py-2 rounded hover:bg-gray-300">Reset</button>
+
+                                    {/* Danh sách lượt */}
+                                    {config.rules.map((rule, idx) => (
+                                        <div key={idx} className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                            <div className="flex justify-between items-center mb-2">
+                                                <div className="text-sm font-bold text-gray-700 bg-gray-200 px-2 py-0.5 rounded">Lượt {idx+1}</div>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div>
+                                                    <label className="text-xs text-gray-500 block mb-1">Tối thiểu</label>
+                                                    <select 
+                                                        value={rule.min} 
+                                                        onChange={(e)=>{
+                                                            const newRules = [...config.rules];
+                                                            newRules[idx].min = parseInt(e.target.value);
+                                                            if(newRules[idx].max < newRules[idx].min) newRules[idx].max = newRules[idx].min;
+                                                            setConfig({...config, rules: newRules});
+                                                        }} 
+                                                        className="w-full p-2 border rounded-md text-sm font-medium focus:ring-2 focus:ring-red-500 outline-none"
+                                                    >
+                                                        {MONEY_VALUES.map(v=><option key={v} value={v}>{v}k</option>)}
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label className="text-xs text-gray-500 block mb-1">Tối đa</label>
+                                                    <select 
+                                                        value={rule.max} 
+                                                        onChange={(e)=>{
+                                                            const newRules = [...config.rules];
+                                                            newRules[idx].max = parseInt(e.target.value);
+                                                            if(newRules[idx].min > newRules[idx].max) newRules[idx].min = newRules[idx].max;
+                                                            setConfig({...config, rules: newRules});
+                                                        }} 
+                                                        className="w-full p-2 border rounded-md text-sm font-medium focus:ring-2 focus:ring-red-500 outline-none"
+                                                    >
+                                                        {MONEY_VALUES.map(v=><option key={v} value={v}>{v}k</option>)}
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                
+                                <div className="grid grid-cols-2 gap-3 mt-6 pt-4 border-t">
+                                    <button onClick={handleReset} className="py-3 rounded-lg font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition">Mặc định</button>
+                                    <button onClick={handleSaveConfig} className="py-3 rounded-lg font-bold text-white bg-red-600 hover:bg-red-700 shadow-lg shadow-red-200 transition">Lưu Lại</button>
+                                </div>
                             </div>
                         </div>
                     )}
