@@ -15,13 +15,11 @@
             font-family: 'Segoe UI', Roboto, sans-serif;
             margin: 0;
             padding: 0;
-            /* NỀN BACKGROUND.PNG TỐI ƯU MOBILE */
             background-image: url('Background.png');
             background-size: cover;
             background-position: center center;
             background-repeat: no-repeat;
             background-attachment: fixed;
-            min-height: 100vh;
             min-height: 100dvh;
             width: 100vw;
             overflow: hidden;
@@ -39,7 +37,6 @@
             justify-content: center;
         }
 
-        /* Vòng quay dừng cực chậm trong 13 giây */
         .wheel-transition {
             transition: transform 13s cubic-bezier(0.15, 0, 0.15, 1);
         }
@@ -71,6 +68,7 @@
         const HALF_SEGMENT = SEGMENT_ANGLE / 2;
 
         const App = () => {
+            // Khởi tạo lượt quay đầu tiên mặc định là 50-50
             const [config, setConfig] = useState({ totalSpins: 1, rules: [{ id: 1, min: 50, max: 50 }] });
             const [currentSpinIndex, setCurrentSpinIndex] = useState(0);
             const [rotation, setRotation] = useState(0);
@@ -81,85 +79,77 @@
             const [password, setPassword] = useState('');
             const [winResult, setWinResult] = useState(null);
             
-            // Refs quản lý Audio
-            const audioCongrat = useRef(new Audio('Congrat.mp3'));
-            const audioBG = useRef(new Audio('Background.mp3'));
-            const hasInteracted = useRef(false);
+            const audioBG = useRef(null);
+            const audioCongrat = useRef(null);
+            const initialized = useRef(false);
 
             useEffect(() => {
                 const saved = localStorage.getItem('wheelConfig');
                 if (saved) setConfig(JSON.parse(saved));
                 const savedIdx = localStorage.getItem('currentSpinIndex');
                 if (savedIdx) setCurrentSpinIndex(parseInt(savedIdx));
-                
-                // Cấu hình âm thanh
-                audioBG.current.loop = true;
-                audioCongrat.current.loop = true; // NHẠC CHÚC MỪNG LOOP
 
-                // Lắng nghe tương tác đầu tiên để kích hoạt Autoplay nhạc nền
-                const initAudio = () => {
-                    if (!hasInteracted.current) {
+                const handleFirstInteraction = () => {
+                    if (!initialized.current) {
+                        audioBG.current = new Audio('Background.mp3'); 
+                        audioBG.current.loop = true;
                         audioBG.current.play().catch(() => {});
-                        hasInteracted.current = true;
-                        window.removeEventListener('click', initAudio);
-                        window.removeEventListener('touchstart', initAudio);
+                        audioCongrat.current = new Audio('Congrat.mp3');
+                        audioCongrat.current.loop = true;
+                        initialized.current = true;
+                        window.removeEventListener('click', handleFirstInteraction);
+                        window.removeEventListener('touchstart', handleFirstInteraction);
                     }
                 };
-                window.addEventListener('click', initAudio);
-                window.addEventListener('touchstart', initAudio);
-
+                window.addEventListener('click', handleFirstInteraction);
+                window.addEventListener('touchstart', handleFirstInteraction);
                 return () => {
-                    window.removeEventListener('click', initAudio);
-                    window.removeEventListener('touchstart', initAudio);
+                    window.removeEventListener('click', handleFirstInteraction);
+                    window.removeEventListener('touchstart', handleFirstInteraction);
                 };
             }, []);
 
             const handleSpin = () => {
                 if (isSpinning) return;
-
-                // Đảm bảo nhạc nền đang phát khi bắt đầu quay
-                audioBG.current.volume = 1;
-                audioBG.current.play().catch(() => {});
-
-                const rule = config.rules[currentSpinIndex % config.totalSpins];
+                if (audioBG.current) {
+                    audioBG.current.volume = 1;
+                    audioBG.current.play().catch(() => {});
+                }
+                const rule = config.rules[currentSpinIndex % config.totalSpins] || config.rules[0];
                 const valid = WHEEL_SEGMENTS.map((s, i) => ({...s, idx: i})).filter(s => s.value >= rule.min && s.value <= rule.max);
                 const target = valid[Math.floor(Math.random() * valid.length)];
-
+                
                 const targetAngle = (target.idx * SEGMENT_ANGLE) + HALF_SEGMENT;
                 const extra = 360 * 18; 
                 const pointerPos = 90; 
-                
                 const currentRotMod = rotation % 360;
                 let dist = pointerPos - targetAngle;
                 if (dist < 0) dist += 360;
-
-                const isLeftEdge = Math.random() > 0.5;
-                const dramaOffset = isLeftEdge ? (9.6 + Math.random()) : -(9.6 + Math.random());
-
+                const dramaOffset = (Math.random() > 0.5 ? 9.6 : -9.6);
                 const finalRot = rotation + (360 - currentRotMod) + extra + dist + dramaOffset;
+                
                 setRotation(finalRot);
                 setIsSpinning(true);
 
-                // GIẢM NHẠC NỀN: Bắt đầu từ giây thứ 11
                 setTimeout(() => {
                     let fadeOut = setInterval(() => {
-                        if (audioBG.current.volume > 0.05) {
-                            audioBG.current.volume -= 0.05;
+                        if (audioBG.current && audioBG.current.volume > 0.1) {
+                            audioBG.current.volume -= 0.1;
                         } else {
-                            audioBG.current.pause(); 
+                            if(audioBG.current) audioBG.current.pause();
                             clearInterval(fadeOut);
                         }
-                    }, 100);
+                    }, 150);
                 }, 11000); 
 
-                // KHI DỪNG: Hiện kết quả và Loop nhạc chúc mừng
                 setTimeout(() => {
                     setIsSpinning(false);
                     setWinResult(target);
                     setShowOverlay(true);
-                    audioCongrat.current.currentTime = 0;
-                    audioCongrat.current.play().catch(()=>{}); 
-                    
+                    if (audioCongrat.current) {
+                        audioCongrat.current.currentTime = 0;
+                        audioCongrat.current.play().catch(() => {});
+                    }
                     const next = currentSpinIndex + 1;
                     setCurrentSpinIndex(next);
                     localStorage.setItem('currentSpinIndex', next);
@@ -167,14 +157,8 @@
             };
 
             const closeOverlay = () => {
-                // Tắt nhạc chúc mừng ngay lập tức
-                audioCongrat.current.pause();
-                audioCongrat.current.currentTime = 0;
-
-                // Phát lại nhạc nền
-                audioBG.current.volume = 1;
-                audioBG.current.play().catch(()=>{});
-
+                if (audioCongrat.current) { audioCongrat.current.pause(); audioCongrat.current.currentTime = 0; }
+                if (audioBG.current) { audioBG.current.volume = 1; audioBG.current.play().catch(() => {}); }
                 setShowOverlay(false);
             };
 
@@ -187,72 +171,74 @@
 
             return (
                 <div className="min-h-[100dvh] w-full flex flex-col items-center pt-6 select-none overflow-hidden">
-                    
                     <div className="z-10 text-center mb-6 px-4">
-                        <h1 className="text-6xl font-black text-red-600 drop-shadow-md font-serif">LÌ XÌ</h1>
-                        <p className="text-2xl font-bold text-yellow-800 tracking-widest mt-1 uppercase opacity-90">Tết Bính Ngọ 2026</p>
+                        <h1 className="text-6xl font-black text-red-600 drop-shadow-lg font-serif uppercase">Lì Xì</h1>
+                        <p className="text-2xl font-bold text-yellow-900 tracking-widest mt-1 uppercase opacity-90 drop-shadow-sm">Bính Ngọ 2026</p>
                     </div>
 
                     <div className="relative w-[340px] h-[340px] md:w-[520px] md:h-[520px]">
-                        <div className="absolute top-1/2 right-[-15px] md:right-[-35px] -translate-y-1/2 z-40 w-10 md:w-16 h-8 pointer-events-none">
-                            <svg viewBox="0 0 100 60" className="w-full h-full drop-shadow-lg">
-                                <path d="M5 30 L100 0 L85 30 L100 60 Z" fill="#DAA520" stroke="#8B4513" strokeWidth="1.5"/>
+                        {/* Mũi tên 3D */}
+                        <div className="absolute top-1/2 right-[-22px] md:right-[-42px] -translate-y-1/2 z-40 w-14 md:w-24 h-12 pointer-events-none drop-shadow-[0_6px_8px_rgba(0,0,0,0.6)]">
+                            <svg viewBox="0 0 100 60">
+                                <defs>
+                                    <linearGradient id="gTop" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stopColor="#ff4d4d"/><stop offset="100%" stopColor="#ff0000"/></linearGradient>
+                                    <linearGradient id="gBot" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stopColor="#b30000"/><stop offset="100%" stopColor="#800000"/></linearGradient>
+                                </defs>
+                                <path d="M5 30 L100 0 L85 30 Z" fill="url(#gTop)" />
+                                <path d="M5 30 L85 30 L100 60 Z" fill="url(#gBot)" />
+                                <line x1="5" y1="30" x2="85" y2="30" stroke="#ff8080" strokeWidth="0.5" strokeOpacity="0.5" />
+                                <path d="M5 30 L100 0 L85 30 L100 60 Z" fill="none" stroke="#4a0000" strokeWidth="1" />
                             </svg>
                         </div>
 
-                        <div className="perfect-circle w-full h-full bg-white shadow-[0_20px_60px_rgba(0,0,0,0.3)] border-[8px] md:border-[12px] border-white relative">
-                            <div 
-                                className={`absolute inset-0 rounded-full overflow-hidden border-2 border-black/5 ${isSpinning ? 'wheel-transition' : ''}`}
-                                style={{
-                                    background: wheelBackground,
-                                    transform: `rotate(${rotation}deg)`
-                                }}
-                            >
+                        <div className="perfect-circle w-full h-full bg-white shadow-[0_20px_60px_rgba(0,0,0,0.4)] border-[8px] md:border-[12px] border-white relative">
+                            <div className={`absolute inset-0 rounded-full overflow-hidden border-2 border-black/5 ${isSpinning ? 'wheel-transition' : ''}`} style={{ background: wheelBackground, transform: `rotate(${rotation}deg)` }}>
                                 {WHEEL_SEGMENTS.map((seg, i) => (
                                     <div key={i} className="absolute top-0 left-0 w-full h-full" style={{ transform: `rotate(${i * SEGMENT_ANGLE + HALF_SEGMENT}deg)` }}>
                                         <div className="absolute top-[8%] left-1/2 -translate-x-1/2">
-                                            <img src={seg.img} className="w-16 h-10 md:w-28 md:h-16 object-contain transform rotate-90" onError={(e)=>e.target.style.opacity='0'} />
+                                            <img src={seg.img} className="w-16 h-10 md:w-28 md:h-16 object-contain transform rotate-90" />
                                         </div>
                                     </div>
                                 ))}
                             </div>
-
-                            <div 
-                                onClick={handleSpin}
-                                className="absolute z-30 w-28 h-28 md:w-44 md:h-44 bg-white rounded-full shadow-2xl flex items-center justify-center cursor-pointer border-4 border-yellow-50 active:scale-90 transition-transform"
-                            >
-                                <img src="Logo.png" className="w-full h-full object-cover p-1" onError={(e)=>e.target.parentNode.innerHTML='<b class="text-red-600 text-3xl">QUAY</b>'}/>
+                            
+                            <div onClick={handleSpin} className="absolute z-30 w-32 h-32 md:w-52 md:h-52 bg-white rounded-full shadow-[0_0_30px_rgba(0,0,0,0.2)] flex items-center justify-center cursor-pointer border-4 border-yellow-100 active:scale-90 transition-transform">
+                                <img src="Logo.png" className="w-full h-full object-cover p-1" onError={(e)=>e.target.parentNode.innerHTML='<b class="text-red-600 text-3xl font-black">QUAY</b>'}/>
                             </div>
                         </div>
                     </div>
 
-                    {/* Popups */}
-                    {showLogin && (
-                        <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
-                            <div className="bg-white rounded-3xl p-8 w-full max-w-xs shadow-2xl text-center fade-in">
-                                <h3 className="text-lg font-bold mb-4">Mã quản lý</h3>
-                                <form onSubmit={(e) => { e.preventDefault(); if (password === '1709') { setShowLogin(false); setShowSettings(true); setPassword(''); } else { alert('Sai!'); } }}>
-                                    <input type="password" autoFocus value={password} onChange={(e)=>setPassword(e.target.value)} className="w-full border-2 border-gray-100 rounded-xl px-4 py-3 mb-4 text-center text-2xl tracking-widest outline-none focus:border-red-400" placeholder="****" />
-                                    <button type="submit" className="w-full py-3 bg-red-600 text-white rounded-xl font-bold">Xác nhận</button>
-                                </form>
-                            </div>
-                        </div>
-                    )}
-
+                    {/* Cài đặt */}
                     {showSettings && (
-                        <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4">
+                        <div className="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm">
                             <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl relative fade-in">
-                                <button onClick={()=>setShowSettings(false)} className="absolute top-4 right-4 text-gray-400">✕</button>
-                                <h3 className="text-xl font-bold text-red-600 border-b pb-3 mb-4 uppercase">Cài đặt lượt quay</h3>
-                                <div className="space-y-4 max-h-[50vh] overflow-y-auto no-scrollbar pr-2">
+                                <button onClick={()=>setShowSettings(false)} className="absolute top-4 right-4 text-gray-400 text-xl">✕</button>
+                                <h3 className="text-xl font-bold text-red-600 border-b pb-3 mb-4 uppercase text-center">Cài đặt lượt quay</h3>
+                                <div className="space-y-4 max-h-[50vh] overflow-y-auto no-scrollbar pr-1">
+                                    <div className="flex items-center justify-between bg-red-50 p-4 rounded-2xl border border-red-100">
+                                        <span className="font-bold text-red-800">Số lượt quay:</span>
+                                        <div className="flex items-center gap-4 bg-white px-3 py-1 rounded-xl shadow-sm border border-red-200">
+                                            <button onClick={()=>setConfig(prev=>{
+                                                const val = Math.max(1, prev.totalSpins - 1);
+                                                return {...prev, totalSpins: val, rules: prev.rules.slice(0, val)};
+                                            })} className="w-8 h-8 text-2xl font-bold text-red-600">-</button>
+                                            <span className="font-black text-xl w-6 text-center">{config.totalSpins}</span>
+                                            <button onClick={()=>setConfig(prev=>{
+                                                const val = prev.totalSpins + 1;
+                                                // MẶC ĐỊNH LƯỢT MỚI LÀ MIN 50, MAX 50
+                                                const newRules = [...prev.rules, {id: val, min: 50, max: 50}];
+                                                return {...prev, totalSpins: val, rules: newRules};
+                                            })} className="w-8 h-8 text-2xl font-bold text-red-600">+</button>
+                                        </div>
+                                    </div>
                                     {config.rules.map((rule, idx) => (
                                         <div key={idx} className="p-3 bg-gray-50 rounded-xl border border-gray-200">
-                                            <p className="text-[10px] font-black text-gray-400 mb-2 uppercase">Lượt {idx+1}</p>
+                                            <p className="text-[10px] font-black text-gray-400 mb-1 uppercase text-center font-bold">Lượt {idx+1}</p>
                                             <div className="flex gap-2">
-                                                <select value={rule.min} onChange={(e)=>{ const r = [...config.rules]; r[idx].min = parseInt(e.target.value); setConfig({...config, rules: r}); }} className="flex-1 p-2 bg-white rounded-lg text-xs outline-none border border-gray-100">
+                                                <select value={rule.min} onChange={(e)=>{ const r = [...config.rules]; r[idx].min = parseInt(e.target.value); setConfig({...config, rules: r}); }} className="flex-1 p-2 bg-white rounded-lg text-xs border outline-none">
                                                     {Object.keys(MONEY_DATA).map(v=><option key={v} value={v}>Min: {v}k</option>)}
                                                 </select>
-                                                <select value={rule.max} onChange={(e)=>{ const r = [...config.rules]; r[idx].max = parseInt(e.target.value); setConfig({...config, rules: r}); }} className="flex-1 p-2 bg-white rounded-lg text-xs outline-none border border-gray-100">
+                                                <select value={rule.max} onChange={(e)=>{ const r = [...config.rules]; r[idx].max = parseInt(e.target.value); setConfig({...config, rules: r}); }} className="flex-1 p-2 bg-white rounded-lg text-xs border outline-none">
                                                     {Object.keys(MONEY_DATA).map(v=><option key={v} value={v}>Max: {v}k</option>)}
                                                 </select>
                                             </div>
@@ -264,16 +250,32 @@
                         </div>
                     )}
 
+                    {/* Login với nút TRỞ LẠI */}
+                    {showLogin && (
+                        <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
+                            <div className="bg-white rounded-3xl p-8 w-full max-w-xs shadow-2xl text-center fade-in">
+                                <h3 className="text-lg font-bold mb-4">Mã quản lý</h3>
+                                <form onSubmit={(e) => { e.preventDefault(); if (password === '1709') { setShowLogin(false); setShowSettings(true); setPassword(''); } else { alert('Mật khẩu không đúng!'); } }}>
+                                    <input type="password" autoFocus value={password} onChange={(e)=>setPassword(e.target.value)} className="w-full border-2 border-gray-100 rounded-xl px-4 py-3 mb-4 text-center text-2xl tracking-widest outline-none focus:border-red-400" placeholder="****" />
+                                    <div className="flex gap-3">
+                                        <button type="button" onClick={() => {setShowLogin(false); setPassword('');}} className="flex-1 py-3 bg-gray-200 text-gray-700 rounded-xl font-bold">Trở lại</button>
+                                        <button type="submit" className="flex-[2] py-3 bg-red-600 text-white rounded-xl font-bold">Xác nhận</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+
                     {showOverlay && (
                         <div className="fixed inset-0 z-[150] bg-black/95 flex flex-col items-center justify-center p-6 fade-in" onClick={closeOverlay}>
-                            <h2 className="text-5xl font-black text-yellow-400 mb-8 animate-bounce">XỊN QUÁ!</h2>
-                            <img src={winResult.img} className="w-80 md:w-[480px] drop-shadow-[0_0_80px_rgba(255,223,0,0.5)]" />
-                            <div className="text-2xl md:text-3xl font-bold text-white mt-10 text-center tracking-widest uppercase">Bạn nhận được <span className="text-yellow-400">{MONEY_DATA[winResult.value].label}</span></div>
+                            <h2 className="text-5xl font-black text-yellow-400 mb-8 animate-bounce uppercase drop-shadow-lg text-center">Chúc Mừng!</h2>
+                            <img src={winResult.img} className="w-80 md:w-[480px] drop-shadow-[0_0_80px_rgba(255,223,0,0.6)]" />
+                            <div className="text-2xl md:text-3xl font-bold text-white mt-10 text-center tracking-widest uppercase px-4">Bạn nhận được <span className="text-yellow-400 font-black">{MONEY_DATA[winResult.value].label}</span></div>
                             <p className="text-white/40 mt-8 text-sm italic animate-pulse">Chạm nhẹ để quay tiếp...</p>
                         </div>
                     )}
 
-                    <div onClick={() => setShowLogin(true)} className="fixed bottom-6 right-6 p-4 bg-white/10 backdrop-blur-sm rounded-full text-white/30 cursor-pointer hover:bg-white/20 transition-all">
+                    <div onClick={() => setShowLogin(true)} className="fixed bottom-6 right-6 p-4 bg-white/10 backdrop-blur-sm rounded-full text-white/30 cursor-pointer hover:bg-white/20 transition-all shadow-xl">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                     </div>
                 </div>
