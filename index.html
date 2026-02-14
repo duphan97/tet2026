@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Lì Xì Tết Bính Ngọ</title>
+    <title>Lì Xì Tết Bính Ngọ 2026</title>
 
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -13,8 +13,17 @@
     <style>
         body {
             font-family: 'Segoe UI', Roboto, sans-serif;
-            background: radial-gradient(circle at center, #f0f9ff, #7dd3fc); 
+            margin: 0;
+            padding: 0;
+            /* NỀN BACKGROUND.PNG TỐI ƯU MOBILE */
+            background-image: url('Background.png');
+            background-size: cover;
+            background-position: center center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
             min-height: 100vh;
+            min-height: 100dvh;
+            width: 100vw;
             overflow: hidden;
             touch-action: manipulation;
         }
@@ -30,7 +39,7 @@
             justify-content: center;
         }
 
-        /* Tăng thời gian lên 13s và chỉnh bezier để giai đoạn cuối cực chậm */
+        /* Vòng quay dừng cực chậm trong 13 giây */
         .wheel-transition {
             transition: transform 13s cubic-bezier(0.15, 0, 0.15, 1);
         }
@@ -51,14 +60,10 @@
         };
 
         const BASE_SEGMENTS = [
-            { value: 500, img: '500k.png' },
-            { value: 200, img: '200k.png' },
-            { value: 100, img: '100k.png' },
-            { value: 50, img: '50k.png' },
-            { value: 20, img: '20k.png' },
-            { value: 100, img: '100k.png' },
-            { value: 50, img: '50k.png' },
-            { value: 20, img: '20k.png' },
+            { value: 500, img: '500k.png' }, { value: 200, img: '200k.png' },
+            { value: 100, img: '100k.png' }, { value: 50, img: '50k.png' },
+            { value: 20, img: '20k.png' }, { value: 100, img: '100k.png' },
+            { value: 50, img: '50k.png' }, { value: 20, img: '20k.png' },
         ];
 
         const WHEEL_SEGMENTS = [...BASE_SEGMENTS, ...BASE_SEGMENTS];
@@ -75,14 +80,103 @@
             const [showLogin, setShowLogin] = useState(false);
             const [password, setPassword] = useState('');
             const [winResult, setWinResult] = useState(null);
-            const [audio] = useState(new Audio('Congrat.mp3'));
+            
+            // Refs quản lý Audio
+            const audioCongrat = useRef(new Audio('Congrat.mp3'));
+            const audioBG = useRef(new Audio('Background.mp3'));
+            const hasInteracted = useRef(false);
 
             useEffect(() => {
                 const saved = localStorage.getItem('wheelConfig');
                 if (saved) setConfig(JSON.parse(saved));
                 const savedIdx = localStorage.getItem('currentSpinIndex');
                 if (savedIdx) setCurrentSpinIndex(parseInt(savedIdx));
+                
+                // Cấu hình âm thanh
+                audioBG.current.loop = true;
+                audioCongrat.current.loop = true; // NHẠC CHÚC MỪNG LOOP
+
+                // Lắng nghe tương tác đầu tiên để kích hoạt Autoplay nhạc nền
+                const initAudio = () => {
+                    if (!hasInteracted.current) {
+                        audioBG.current.play().catch(() => {});
+                        hasInteracted.current = true;
+                        window.removeEventListener('click', initAudio);
+                        window.removeEventListener('touchstart', initAudio);
+                    }
+                };
+                window.addEventListener('click', initAudio);
+                window.addEventListener('touchstart', initAudio);
+
+                return () => {
+                    window.removeEventListener('click', initAudio);
+                    window.removeEventListener('touchstart', initAudio);
+                };
             }, []);
+
+            const handleSpin = () => {
+                if (isSpinning) return;
+
+                // Đảm bảo nhạc nền đang phát khi bắt đầu quay
+                audioBG.current.volume = 1;
+                audioBG.current.play().catch(() => {});
+
+                const rule = config.rules[currentSpinIndex % config.totalSpins];
+                const valid = WHEEL_SEGMENTS.map((s, i) => ({...s, idx: i})).filter(s => s.value >= rule.min && s.value <= rule.max);
+                const target = valid[Math.floor(Math.random() * valid.length)];
+
+                const targetAngle = (target.idx * SEGMENT_ANGLE) + HALF_SEGMENT;
+                const extra = 360 * 18; 
+                const pointerPos = 90; 
+                
+                const currentRotMod = rotation % 360;
+                let dist = pointerPos - targetAngle;
+                if (dist < 0) dist += 360;
+
+                const isLeftEdge = Math.random() > 0.5;
+                const dramaOffset = isLeftEdge ? (9.6 + Math.random()) : -(9.6 + Math.random());
+
+                const finalRot = rotation + (360 - currentRotMod) + extra + dist + dramaOffset;
+                setRotation(finalRot);
+                setIsSpinning(true);
+
+                // GIẢM NHẠC NỀN: Bắt đầu từ giây thứ 11
+                setTimeout(() => {
+                    let fadeOut = setInterval(() => {
+                        if (audioBG.current.volume > 0.05) {
+                            audioBG.current.volume -= 0.05;
+                        } else {
+                            audioBG.current.pause(); 
+                            clearInterval(fadeOut);
+                        }
+                    }, 100);
+                }, 11000); 
+
+                // KHI DỪNG: Hiện kết quả và Loop nhạc chúc mừng
+                setTimeout(() => {
+                    setIsSpinning(false);
+                    setWinResult(target);
+                    setShowOverlay(true);
+                    audioCongrat.current.currentTime = 0;
+                    audioCongrat.current.play().catch(()=>{}); 
+                    
+                    const next = currentSpinIndex + 1;
+                    setCurrentSpinIndex(next);
+                    localStorage.setItem('currentSpinIndex', next);
+                }, 13000);
+            };
+
+            const closeOverlay = () => {
+                // Tắt nhạc chúc mừng ngay lập tức
+                audioCongrat.current.pause();
+                audioCongrat.current.currentTime = 0;
+
+                // Phát lại nhạc nền
+                audioBG.current.volume = 1;
+                audioBG.current.play().catch(()=>{});
+
+                setShowOverlay(false);
+            };
 
             const wheelBackground = `conic-gradient(
                 ${WHEEL_SEGMENTS.map((seg, i) => {
@@ -91,97 +185,43 @@
                 }).join(', ')}
             )`;
 
-            const handleLogin = (e) => {
-                e.preventDefault();
-                if (password === '1709') {
-                    setShowLogin(false);
-                    setShowSettings(true);
-                    setPassword('');
-                } else {
-                    alert('Sai mật khẩu!');
-                }
-            };
-
-            const handleSpin = () => {
-                if (isSpinning) return;
-                const rule = config.rules[currentSpinIndex % config.totalSpins];
-                const valid = WHEEL_SEGMENTS.map((s, i) => ({...s, idx: i})).filter(s => s.value >= rule.min && s.value <= rule.max);
-                const target = valid[Math.floor(Math.random() * valid.length)];
-
-                const targetAngle = (target.idx * SEGMENT_ANGLE) + HALF_SEGMENT;
-                const extra = 360 * 15; // Quay nhiều vòng hơn để tạo đà cho 13 giây
-                const pointerPos = 90; 
-                
-                const currentRotMod = rotation % 360;
-                let dist = pointerPos - targetAngle;
-                if (dist < 0) dist += 360;
-
-                // Tăng độ sát vách lên mức tối đa (lệch 9 - 10.5 độ, trong khi 1 múi là 11.25 độ tính từ tâm)
-                const isLeftEdge = Math.random() > 0.5;
-                const dramaOffset = isLeftEdge ? (9 + Math.random() * 1.5) : -(9 + Math.random() * 1.5);
-
-                const finalRot = rotation + (360 - currentRotMod) + extra + dist + dramaOffset;
-                setRotation(finalRot);
-                setIsSpinning(true);
-
-                setTimeout(() => {
-                    setIsSpinning(false);
-                    setWinResult(target);
-                    setShowOverlay(true);
-                    audio.play().catch(()=>{});
-                    const next = currentSpinIndex + 1;
-                    setCurrentSpinIndex(next);
-                    localStorage.setItem('currentSpinIndex', next);
-                }, 13100); // Khớp với 13 giây transition
-            };
-
             return (
-                <div className="min-h-screen flex flex-col items-center pt-6 select-none overflow-hidden">
+                <div className="min-h-[100dvh] w-full flex flex-col items-center pt-6 select-none overflow-hidden">
                     
                     <div className="z-10 text-center mb-6 px-4">
-                        <h1 className="text-6xl font-black text-red-600 drop-shadow-sm font-serif">LÌ XÌ</h1>
-                        <p className="text-2xl font-bold text-blue-900 tracking-widest mt-1 uppercase opacity-80">Tết Bính Ngọ</p>
+                        <h1 className="text-6xl font-black text-red-600 drop-shadow-md font-serif">LÌ XÌ</h1>
+                        <p className="text-2xl font-bold text-yellow-800 tracking-widest mt-1 uppercase opacity-90">Tết Bính Ngọ 2026</p>
                     </div>
 
-                    <div className="relative w-[360px] h-[360px] md:w-[520px] md:h-[520px]">
-                        
-                        {/* Kim Chỉ Nam */}
-                        <div className="absolute top-1/2 right-[-20px] md:right-[-35px] -translate-y-1/2 z-40 w-10 md:w-16 h-8 pointer-events-none">
+                    <div className="relative w-[340px] h-[340px] md:w-[520px] md:h-[520px]">
+                        <div className="absolute top-1/2 right-[-15px] md:right-[-35px] -translate-y-1/2 z-40 w-10 md:w-16 h-8 pointer-events-none">
                             <svg viewBox="0 0 100 60" className="w-full h-full drop-shadow-lg">
                                 <path d="M5 30 L100 0 L85 30 L100 60 Z" fill="#DAA520" stroke="#8B4513" strokeWidth="1.5"/>
                             </svg>
                         </div>
 
-                        {/* Vòng quay chính */}
-                        <div className="perfect-circle w-full h-full bg-white shadow-[0_20px_50px_rgba(0,0,0,0.2)] border-[12px] border-white relative">
+                        <div className="perfect-circle w-full h-full bg-white shadow-[0_20px_60px_rgba(0,0,0,0.3)] border-[8px] md:border-[12px] border-white relative">
                             <div 
-                                className={`absolute inset-0 rounded-full overflow-hidden border-2 border-black/10 ${isSpinning ? 'wheel-transition' : ''}`}
+                                className={`absolute inset-0 rounded-full overflow-hidden border-2 border-black/5 ${isSpinning ? 'wheel-transition' : ''}`}
                                 style={{
                                     background: wheelBackground,
                                     transform: `rotate(${rotation}deg)`
                                 }}
                             >
-                                <div className="absolute inset-0 opacity-20" style={{background: `repeating-conic-gradient(transparent 0 ${SEGMENT_ANGLE-0.5}deg, #000 ${SEGMENT_ANGLE-0.5}deg ${SEGMENT_ANGLE}deg)`}}></div>
-
                                 {WHEEL_SEGMENTS.map((seg, i) => (
                                     <div key={i} className="absolute top-0 left-0 w-full h-full" style={{ transform: `rotate(${i * SEGMENT_ANGLE + HALF_SEGMENT}deg)` }}>
                                         <div className="absolute top-[8%] left-1/2 -translate-x-1/2">
-                                            <img 
-                                                src={seg.img} 
-                                                className="w-20 h-12 md:w-28 md:h-16 object-contain transform rotate-90"
-                                                onError={(e)=>e.target.style.opacity='0'}
-                                            />
+                                            <img src={seg.img} className="w-16 h-10 md:w-28 md:h-16 object-contain transform rotate-90" onError={(e)=>e.target.style.opacity='0'} />
                                         </div>
                                     </div>
                                 ))}
                             </div>
 
-                            {/* Nút Quay trung tâm - Đã tăng kích thước lên md:w-44 để sát chân ảnh */}
                             <div 
                                 onClick={handleSpin}
-                                className="absolute z-30 w-32 h-32 md:w-44 md:h-44 bg-white rounded-full shadow-2xl flex items-center justify-center cursor-pointer border-4 border-blue-50 active:scale-95 transition-transform"
+                                className="absolute z-30 w-28 h-28 md:w-44 md:h-44 bg-white rounded-full shadow-2xl flex items-center justify-center cursor-pointer border-4 border-yellow-50 active:scale-90 transition-transform"
                             >
-                                <img src="Logo.png" className="w-full h-full object-cover p-1" onError={(e)=>e.target.parentNode.innerHTML='<b class="text-red-600 text-2xl md:text-3xl">QUAY</b>'}/>
+                                <img src="Logo.png" className="w-full h-full object-cover p-1" onError={(e)=>e.target.parentNode.innerHTML='<b class="text-red-600 text-3xl">QUAY</b>'}/>
                             </div>
                         </div>
                     </div>
@@ -190,13 +230,10 @@
                     {showLogin && (
                         <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
                             <div className="bg-white rounded-3xl p-8 w-full max-w-xs shadow-2xl text-center fade-in">
-                                <h3 className="text-lg font-bold mb-4">Nhập mã quản lý</h3>
-                                <form onSubmit={handleLogin}>
-                                    <input type="password" autoFocus value={password} onChange={(e)=>setPassword(e.target.value)} className="w-full border-2 border-gray-100 rounded-xl px-4 py-3 mb-4 text-center text-2xl tracking-widest outline-none focus:border-blue-400" placeholder="****" />
-                                    <div className="flex gap-2">
-                                        <button type="button" onClick={()=>setShowLogin(false)} className="flex-1 py-3 text-gray-400">Hủy</button>
-                                        <button type="submit" className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold">Mở</button>
-                                    </div>
+                                <h3 className="text-lg font-bold mb-4">Mã quản lý</h3>
+                                <form onSubmit={(e) => { e.preventDefault(); if (password === '1709') { setShowLogin(false); setShowSettings(true); setPassword(''); } else { alert('Sai!'); } }}>
+                                    <input type="password" autoFocus value={password} onChange={(e)=>setPassword(e.target.value)} className="w-full border-2 border-gray-100 rounded-xl px-4 py-3 mb-4 text-center text-2xl tracking-widest outline-none focus:border-red-400" placeholder="****" />
+                                    <button type="submit" className="w-full py-3 bg-red-600 text-white rounded-xl font-bold">Xác nhận</button>
                                 </form>
                             </div>
                         </div>
@@ -205,58 +242,39 @@
                     {showSettings && (
                         <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4">
                             <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl relative fade-in">
-                                <button onClick={()=>setShowSettings(false)} className="absolute top-4 right-4 text-gray-400 text-xl">✕</button>
-                                <h3 className="text-xl font-bold text-blue-900 border-b pb-3 mb-4 uppercase">Cấu hình lượt quay</h3>
+                                <button onClick={()=>setShowSettings(false)} className="absolute top-4 right-4 text-gray-400">✕</button>
+                                <h3 className="text-xl font-bold text-red-600 border-b pb-3 mb-4 uppercase">Cài đặt lượt quay</h3>
                                 <div className="space-y-4 max-h-[50vh] overflow-y-auto no-scrollbar pr-2">
-                                    <div className="flex items-center justify-between bg-blue-50 p-4 rounded-2xl border border-blue-100">
-                                        <span className="font-bold text-blue-800 text-sm">SET SỐ LƯỢT QUAY:</span>
-                                        <div className="flex items-center gap-4 bg-white px-2 py-1 rounded-xl shadow-sm">
-                                            <button onClick={()=>setConfig(prev=>{
-                                                const val = Math.max(1, prev.totalSpins-1);
-                                                return {...prev, totalSpins: val, rules: prev.rules.slice(0, val)};
-                                            })} className="w-8 h-8 text-xl font-bold">-</button>
-                                            <span className="font-black text-xl w-6 text-center">{config.totalSpins}</span>
-                                            <button onClick={()=>setConfig(prev=>{
-                                                const val = prev.totalSpins+1;
-                                                const newRules = [...prev.rules];
-                                                newRules.push({id: val, min: 20, max: 500});
-                                                return {...prev, totalSpins: val, rules: newRules};
-                                            })} className="w-8 h-8 text-xl font-bold">+</button>
-                                        </div>
-                                    </div>
                                     {config.rules.map((rule, idx) => (
-                                        <div key={idx} className="p-3 bg-gray-50 rounded-2xl border border-gray-100">
-                                            <p className="text-[10px] font-black text-blue-400 mb-2 uppercase tracking-tighter">Lượt {idx+1} {currentSpinIndex % config.totalSpins === idx ? '(Tiếp theo)' : ''}</p>
+                                        <div key={idx} className="p-3 bg-gray-50 rounded-xl border border-gray-200">
+                                            <p className="text-[10px] font-black text-gray-400 mb-2 uppercase">Lượt {idx+1}</p>
                                             <div className="flex gap-2">
-                                                <select value={rule.min} onChange={(e)=>{
-                                                    const r = [...config.rules]; r[idx].min = parseInt(e.target.value); setConfig({...config, rules: r});
-                                                }} className="flex-1 p-2 bg-white rounded-xl text-sm outline-none border border-gray-100">
+                                                <select value={rule.min} onChange={(e)=>{ const r = [...config.rules]; r[idx].min = parseInt(e.target.value); setConfig({...config, rules: r}); }} className="flex-1 p-2 bg-white rounded-lg text-xs outline-none border border-gray-100">
                                                     {Object.keys(MONEY_DATA).map(v=><option key={v} value={v}>Min: {v}k</option>)}
                                                 </select>
-                                                <select value={rule.max} onChange={(e)=>{
-                                                    const r = [...config.rules]; r[idx].max = parseInt(e.target.value); setConfig({...config, rules: r});
-                                                }} className="flex-1 p-2 bg-white rounded-xl text-sm outline-none border border-gray-100">
+                                                <select value={rule.max} onChange={(e)=>{ const r = [...config.rules]; r[idx].max = parseInt(e.target.value); setConfig({...config, rules: r}); }} className="flex-1 p-2 bg-white rounded-lg text-xs outline-none border border-gray-100">
                                                     {Object.keys(MONEY_DATA).map(v=><option key={v} value={v}>Max: {v}k</option>)}
                                                 </select>
                                             </div>
                                         </div>
                                     ))}
                                 </div>
-                                <button onClick={()=>{localStorage.setItem('wheelConfig', JSON.stringify(config)); setShowSettings(false)}} className="w-full mt-6 py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200">LƯU CẤU HÌNH</button>
+                                <button onClick={()=>{localStorage.setItem('wheelConfig', JSON.stringify(config)); setShowSettings(false)}} className="w-full mt-6 py-4 bg-red-600 text-white rounded-2xl font-bold shadow-lg">LƯU CẤU HÌNH</button>
                             </div>
                         </div>
                     )}
 
                     {showOverlay && (
-                        <div className="fixed inset-0 z-[150] bg-black/90 flex flex-col items-center justify-center p-6 fade-in" onClick={()=>setShowOverlay(false)}>
-                            <h2 className="text-5xl font-black text-yellow-400 mb-8 animate-bounce">CHÚC MỪNG!</h2>
-                            <img src={winResult.img} className="w-80 md:w-[450px] drop-shadow-[0_0_60px_rgba(255,255,255,0.4)]" />
-                            <div className="text-3xl font-bold text-white mt-8 tracking-wider">Bạn nhận được <span className="text-yellow-400">{MONEY_DATA[winResult.value].label}</span></div>
+                        <div className="fixed inset-0 z-[150] bg-black/95 flex flex-col items-center justify-center p-6 fade-in" onClick={closeOverlay}>
+                            <h2 className="text-5xl font-black text-yellow-400 mb-8 animate-bounce">XỊN QUÁ!</h2>
+                            <img src={winResult.img} className="w-80 md:w-[480px] drop-shadow-[0_0_80px_rgba(255,223,0,0.5)]" />
+                            <div className="text-2xl md:text-3xl font-bold text-white mt-10 text-center tracking-widest uppercase">Bạn nhận được <span className="text-yellow-400">{MONEY_DATA[winResult.value].label}</span></div>
+                            <p className="text-white/40 mt-8 text-sm italic animate-pulse">Chạm nhẹ để quay tiếp...</p>
                         </div>
                     )}
 
-                    <div onClick={() => setShowLogin(true)} className="fixed bottom-6 right-6 p-4 bg-white/30 backdrop-blur-md rounded-full text-blue-900 shadow-xl cursor-pointer active:scale-90 opacity-60 hover:opacity-100 transition-opacity">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                    <div onClick={() => setShowLogin(true)} className="fixed bottom-6 right-6 p-4 bg-white/10 backdrop-blur-sm rounded-full text-white/30 cursor-pointer hover:bg-white/20 transition-all">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                     </div>
                 </div>
             );
