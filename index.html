@@ -30,9 +30,9 @@
             justify-content: center;
         }
 
-        /* Easing cực chậm ở giai đoạn cuối để tăng sự hồi hộp */
+        /* Tăng thời gian lên 13s và chỉnh bezier để giai đoạn cuối cực chậm */
         .wheel-transition {
-            transition: transform 9s cubic-bezier(0.1, 0, 0, 1);
+            transition: transform 13s cubic-bezier(0.15, 0, 0.15, 1);
         }
     </style>
 </head>
@@ -109,18 +109,16 @@
                 const target = valid[Math.floor(Math.random() * valid.length)];
 
                 const targetAngle = (target.idx * SEGMENT_ANGLE) + HALF_SEGMENT;
-                const extra = 360 * 12; // Quay nhiều vòng hơn
+                const extra = 360 * 15; // Quay nhiều vòng hơn để tạo đà cho 13 giây
                 const pointerPos = 90; 
                 
                 const currentRotMod = rotation % 360;
                 let dist = pointerPos - targetAngle;
                 if (dist < 0) dist += 360;
 
-                // TĂNG TỶ LỆ DỪNG SÁT VÁCH:
-                // Một múi là 22.5 độ. Trung tâm là 0. 
-                // Ta cho lệch ngẫu nhiên từ 8 đến 10 độ (rất sát lề của múi)
+                // Tăng độ sát vách lên mức tối đa (lệch 9 - 10.5 độ, trong khi 1 múi là 11.25 độ tính từ tâm)
                 const isLeftEdge = Math.random() > 0.5;
-                const dramaOffset = isLeftEdge ? (8 + Math.random() * 2.5) : -(8 + Math.random() * 2.5);
+                const dramaOffset = isLeftEdge ? (9 + Math.random() * 1.5) : -(9 + Math.random() * 1.5);
 
                 const finalRot = rotation + (360 - currentRotMod) + extra + dist + dramaOffset;
                 setRotation(finalRot);
@@ -134,7 +132,7 @@
                     const next = currentSpinIndex + 1;
                     setCurrentSpinIndex(next);
                     localStorage.setItem('currentSpinIndex', next);
-                }, 9100); // Khớp với thời gian transition
+                }, 13100); // Khớp với 13 giây transition
             };
 
             return (
@@ -147,7 +145,7 @@
 
                     <div className="relative w-[360px] h-[360px] md:w-[520px] md:h-[520px]">
                         
-                        {/* Kim Vàng Đồng - Nhỏ gọn, dời xa hơn */}
+                        {/* Kim Chỉ Nam */}
                         <div className="absolute top-1/2 right-[-20px] md:right-[-35px] -translate-y-1/2 z-40 w-10 md:w-16 h-8 pointer-events-none">
                             <svg viewBox="0 0 100 60" className="w-full h-full drop-shadow-lg">
                                 <path d="M5 30 L100 0 L85 30 L100 60 Z" fill="#DAA520" stroke="#8B4513" strokeWidth="1.5"/>
@@ -163,15 +161,13 @@
                                     transform: `rotate(${rotation}deg)`
                                 }}
                             >
-                                {/* Đường kẻ múi rõ nét hơn để thấy độ sát vách */}
                                 <div className="absolute inset-0 opacity-20" style={{background: `repeating-conic-gradient(transparent 0 ${SEGMENT_ANGLE-0.5}deg, #000 ${SEGMENT_ANGLE-0.5}deg ${SEGMENT_ANGLE}deg)`}}></div>
 
                                 {WHEEL_SEGMENTS.map((seg, i) => (
                                     <div key={i} className="absolute top-0 left-0 w-full h-full" style={{ transform: `rotate(${i * SEGMENT_ANGLE + HALF_SEGMENT}deg)` }}>
-                                        <div className="absolute top-[6%] left-1/2 -translate-x-1/2">
+                                        <div className="absolute top-[8%] left-1/2 -translate-x-1/2">
                                             <img 
                                                 src={seg.img} 
-                                                // Tăng kích thước ảnh tờ tiền để lấp đầy múi
                                                 className="w-20 h-12 md:w-28 md:h-16 object-contain transform rotate-90"
                                                 onError={(e)=>e.target.style.opacity='0'}
                                             />
@@ -180,17 +176,17 @@
                                 ))}
                             </div>
 
-                            {/* Nút Quay trung tâm */}
+                            {/* Nút Quay trung tâm - Đã tăng kích thước lên md:w-44 để sát chân ảnh */}
                             <div 
                                 onClick={handleSpin}
-                                className="absolute z-30 w-24 h-24 md:w-32 md:h-32 bg-white rounded-full shadow-2xl flex items-center justify-center cursor-pointer border-4 border-blue-50 active:scale-95 transition-transform"
+                                className="absolute z-30 w-32 h-32 md:w-44 md:h-44 bg-white rounded-full shadow-2xl flex items-center justify-center cursor-pointer border-4 border-blue-50 active:scale-95 transition-transform"
                             >
-                                <img src="Logo.png" className="w-full h-full object-cover p-1" onError={(e)=>e.target.parentNode.innerHTML='<b class="text-red-600">QUAY</b>'}/>
+                                <img src="Logo.png" className="w-full h-full object-cover p-1" onError={(e)=>e.target.parentNode.innerHTML='<b class="text-red-600 text-2xl md:text-3xl">QUAY</b>'}/>
                             </div>
                         </div>
                     </div>
 
-                    {/* Popups (Login, Settings, Overlay) giữ nguyên logic cũ nhưng UI mượt hơn */}
+                    {/* Popups */}
                     {showLogin && (
                         <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
                             <div className="bg-white rounded-3xl p-8 w-full max-w-xs shadow-2xl text-center fade-in">
