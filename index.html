@@ -38,22 +38,14 @@
 
         .money-slot {
             position: absolute;
-            top: 2%;
-            left: 50%;
+            top: 2%; left: 50%;
             transform: translateX(-50%);
-            width: 50%; 
-            height: auto;
+            width: 50%; height: auto;
             aspect-ratio: 2.3 / 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: flex; align-items: center; justify-content: center;
         }
 
-        .money-img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-        }
+        .money-img { width: 100%; height: 100%; object-fit: contain; }
 
         .text-binh-ngo {
             color: #ff0000;
@@ -66,6 +58,13 @@
             text-shadow: 0 0 20px rgba(251, 191, 36, 0.8), 2px 2px 2px rgba(0,0,0,0.5);
         }
         .no-scrollbar::-webkit-scrollbar { display: none; }
+        
+        /* Hiệu ứng trượt cho thông báo */
+        .toast-slide { animation: slideUp 0.3s ease-out forwards; }
+        @keyframes slideUp {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
     </style>
 </head>
 <body>
@@ -107,6 +106,11 @@
             const [password, setPassword] = useState('');
             const [winResult, setWinResult] = useState(null);
             
+            // UI State cho thông báo tùy chỉnh
+            const [loginError, setLoginError] = useState(false);
+            const [showResetConfirm, setShowResetConfirm] = useState(false);
+            const [toast, setToast] = useState(null);
+            
             const audioBG = useRef(new Audio('Background.mp3'));
             const audioCongrat = useRef(new Audio('Congrat.mp3'));
             const initialized = useRef(false);
@@ -130,6 +134,11 @@
                     const img = new Image();
                     img.src = item.highRes;
                 });
+            };
+
+            const showToast = (msg) => {
+                setToast(msg);
+                setTimeout(() => setToast(null), 2500);
             };
 
             useEffect(() => {
@@ -161,8 +170,7 @@
                 let dist = pointerPos - targetAngle;
                 if (dist < 0) dist += 360;
 
-                const safeRange = SEGMENT_ANGLE * 0.75; 
-                const randomOffset = (Math.random() - 0.5) * safeRange;
+                const randomOffset = (Math.random() - 0.5) * (SEGMENT_ANGLE * 0.75);
                 const finalRot = currentRotation + (360 - currentRotMod) + extra + dist + randomOffset;
                 
                 setRotation(finalRot);
@@ -223,14 +231,13 @@
                 setConfig({...config, rules: newRules});
             };
 
-            const resetConfig = () => {
-                if(confirm("Bạn có chắc chắn muốn đặt lại toàn bộ cài đặt về mặc định?")) {
-                    localStorage.removeItem('wheelConfig');
-                    localStorage.removeItem('currentSpinIndex');
-                    setConfig(DEFAULT_CONFIG);
-                    setCurrentSpinIndex(0);
-                    alert("Đã đặt lại thành công!");
-                }
+            const confirmReset = () => {
+                localStorage.removeItem('wheelConfig');
+                localStorage.removeItem('currentSpinIndex');
+                setConfig(DEFAULT_CONFIG);
+                setCurrentSpinIndex(0);
+                setShowResetConfirm(false);
+                showToast("Đã đặt lại cấu hình mặc định!");
             };
 
             const wheelBackground = `conic-gradient(from 0deg, ${WHEEL_SEGMENTS.map((seg, i) => {
@@ -250,9 +257,7 @@
                     <div className="relative w-[340px] h-[340px] md:w-[580px] md:h-[580px]">
                         <div className="absolute top-1/2 right-0 translate-x-[25%] -translate-y-1/2 z-40 w-6 md:w-10 h-6 md:h-10 pointer-events-none drop-shadow-xl">
                             <svg viewBox="0 0 100 100" className="w-full h-full">
-                                <path d="M0 50 L100 20 L80 50 Z" fill="#ef4444" stroke="none"/>
-                                <path d="M0 50 L80 50 L100 80 Z" fill="#991b1b" stroke="none"/>
-                                <line x1="0" y1="50" x2="80" y2="50" stroke="#7f1d1d" strokeWidth="3" strokeLinecap="round"/>
+                                <path d="M0 50 L100 20 L80 50 Z" fill="#ef4444" stroke="none"/><path d="M0 50 L80 50 L100 80 Z" fill="#991b1b" stroke="none"/><line x1="0" y1="50" x2="80" y2="50" stroke="#7f1d1d" strokeWidth="3" strokeLinecap="round"/>
                             </svg>
                         </div>
 
@@ -261,9 +266,7 @@
                                  style={{ background: wheelBackground, transform: `rotate(${rotation}deg)` }}>
                                 {WHEEL_SEGMENTS.map((seg, i) => (
                                     <div key={i} className="absolute top-0 left-0 w-full h-full" style={{ transform: `rotate(${i * SEGMENT_ANGLE + HALF_SEGMENT}deg)` }}>
-                                        <div className="money-slot">
-                                            <img src={seg.img} className="money-img" />
-                                        </div>
+                                        <div className="money-slot"><img src={seg.img} className="money-img" /></div>
                                     </div>
                                 ))}
                             </div>
@@ -273,16 +276,17 @@
                         </div>
                     </div>
 
+                    {/* Điều khiển nhạc & Cài đặt */}
                     <div className="fixed bottom-6 left-6 z-50">
                         <div onClick={(e) => { e.stopPropagation(); isPlaying ? (audioBG.current.pause(), setIsPlaying(false)) : (audioBG.current.play(), setIsPlaying(true)) }} className="p-4 bg-white/20 backdrop-blur-md rounded-full text-white shadow-xl cursor-pointer border border-white/20">
                             {isPlaying ? <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16"><path d="M6 3.5a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-1 0V4a.5.5 0 0 1 .5-.5zm4 0a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-1 0V4a.5.5 0 0 1 .5-.5z"/></svg> : <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16"><path d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z"/></svg>}
                         </div>
                     </div>
-
                     <div onClick={(e) => { e.stopPropagation(); setShowLogin(true); }} className="fixed bottom-6 right-6 p-4 bg-white/20 backdrop-blur-md rounded-full text-white shadow-xl cursor-pointer border border-white/20 z-50">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                     </div>
 
+                    {/* MODAL KẾT QUẢ */}
                     {showOverlay && (
                         <div className="fixed inset-0 z-[150] bg-black/90 flex flex-col items-center justify-center p-4" onClick={() => {
                             if (audioCongrat.current) { audioCongrat.current.pause(); audioCongrat.current.currentTime = 0; }
@@ -297,14 +301,16 @@
                         </div>
                     )}
 
+                    {/* MODAL ĐĂNG NHẬP */}
                     {showLogin && (
                         <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-md flex items-center justify-center p-4" onClick={(e)=>e.stopPropagation()}>
                             <div className="bg-white rounded-3xl p-8 w-full max-w-xs shadow-2xl text-center">
                                 <h3 className="text-lg font-bold mb-4">Quản lý</h3>
-                                <form onSubmit={(e) => { e.preventDefault(); if (password === '1709') { setShowLogin(false); setShowSettings(true); setPassword(''); } else { alert('Sai!'); } }}>
-                                    <input type="password" autoFocus value={password} onChange={(e)=>setPassword(e.target.value)} className="w-full border-2 border-gray-100 rounded-xl px-4 py-3 mb-4 text-center text-2xl outline-none" placeholder="****" />
-                                    <div className="flex gap-2">
-                                        <button type="button" onClick={()=>setShowLogin(false)} className="flex-1 py-3 bg-gray-100 rounded-xl font-bold">Hủy</button>
+                                <form onSubmit={(e) => { e.preventDefault(); if (password === '1709') { setShowLogin(false); setShowSettings(true); setPassword(''); setLoginError(false); } else { setLoginError(true); } }}>
+                                    <input type="password" autoFocus value={password} onChange={(e)=>{setPassword(e.target.value); setLoginError(false)}} className={`w-full border-2 rounded-xl px-4 py-3 mb-2 text-center text-2xl outline-none transition-colors ${loginError ? 'border-red-500 bg-red-50' : 'border-gray-100'}`} placeholder="****" />
+                                    {loginError && <p className="text-red-500 text-xs font-bold mb-4 animate-bounce">Mật khẩu không chính xác!</p>}
+                                    <div className="flex gap-2 mt-2">
+                                        <button type="button" onClick={()=>{setShowLogin(false); setLoginError(false);}} className="flex-1 py-3 bg-gray-100 rounded-xl font-bold">Hủy</button>
                                         <button type="submit" className="flex-1 py-3 bg-red-600 text-white rounded-xl font-bold">OK</button>
                                     </div>
                                 </form>
@@ -312,6 +318,7 @@
                         </div>
                     )}
 
+                    {/* MODAL CÀI ĐẶT */}
                     {showSettings && (
                         <div className="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm" onClick={(e)=>e.stopPropagation()}>
                             <div className="bg-white rounded-3xl p-5 w-full max-w-xs shadow-2xl relative">
@@ -323,7 +330,6 @@
                                         <div className="flex items-center gap-3 bg-white px-2 py-1 rounded-lg border border-red-200">
                                             <button onClick={()=>setConfig(prev=>{ const val = Math.max(1, prev.totalSpins - 1); return {...prev, totalSpins: val, rules: prev.rules.slice(0, val)}; })} className="font-bold text-red-600 px-1">-</button>
                                             <span className="font-black text-sm">{config.totalSpins}</span>
-                                            {/* ĐÃ CẬP NHẬT: Mặc định thêm mới là 50-50 */}
                                             <button onClick={()=>setConfig(prev=>{ const val = prev.totalSpins + 1; return {...prev, totalSpins: val, rules: [...prev.rules, {id: val, min: 50, max: 50}]}; })} className="font-bold text-red-600 px-1">+</button>
                                         </div>
                                     </div>
@@ -340,10 +346,35 @@
                                     ))}
                                 </div>
                                 <div className="mt-4 flex flex-col gap-2">
-                                    <button onClick={()=>{localStorage.setItem('wheelConfig', JSON.stringify(config)); setShowSettings(false)}} className="w-full py-3 bg-red-600 text-white rounded-xl font-bold text-sm">LƯU THAY ĐỔI</button>
-                                    {/* BỔ SUNG: Nút Reset */}
-                                    <button onClick={resetConfig} className="w-full py-2 bg-gray-200 text-gray-600 rounded-xl font-bold text-[11px] uppercase tracking-wider">Đặt lại (Reset)</button>
+                                    <button onClick={()=>{localStorage.setItem('wheelConfig', JSON.stringify(config)); setShowSettings(false); showToast("Đã lưu cài đặt!");}} className="w-full py-3 bg-red-600 text-white rounded-xl font-bold text-sm">LƯU THAY ĐỔI</button>
+                                    <button onClick={()=>setShowResetConfirm(true)} className="w-full py-2 bg-gray-200 text-gray-600 rounded-xl font-bold text-[11px] uppercase tracking-wider">Đặt lại (Reset)</button>
                                 </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* MODAL XÁC NHẬN RESET TÙY CHỈNH */}
+                    {showResetConfirm && (
+                        <div className="fixed inset-0 z-[200] bg-black/80 flex items-center justify-center p-4">
+                            <div className="bg-white rounded-3xl p-6 w-full max-w-xs shadow-2xl text-center zoom-smooth">
+                                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.5"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                </div>
+                                <h3 className="text-lg font-bold mb-2">Xác nhận đặt lại?</h3>
+                                <p className="text-gray-500 text-sm mb-6">Tất cả cấu hình lượt quay của bạn sẽ bị xóa sạch.</p>
+                                <div className="flex gap-2">
+                                    <button onClick={()=>setShowResetConfirm(false)} className="flex-1 py-3 bg-gray-100 rounded-xl font-bold">Hủy</button>
+                                    <button onClick={confirmReset} className="flex-1 py-3 bg-red-600 text-white rounded-xl font-bold">Đặt lại ngay</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* TOAST THÔNG BÁO TỰ ẨN */}
+                    {toast && (
+                        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[300] toast-slide">
+                            <div className="bg-gray-900/90 text-white px-6 py-3 rounded-full text-sm font-bold shadow-2xl backdrop-blur-sm border border-white/10">
+                                {toast}
                             </div>
                         </div>
                     )}
