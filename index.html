@@ -186,7 +186,7 @@
                 let dist = pointerPos - targetAngle;
                 if (dist < 0) dist += 360;
 
-                const randomOffset = (Math.random() - 0.5) * (SEGMENT_ANGLE * 0.75);
+                const randomOffset = (Math.random() - 0.5) * (SEGMENT_ANGLE * 0.95);
                 const finalRot = currentRotation + (360 - currentRotMod) + extra + dist + randomOffset;
                 
                 setRotation(finalRot);
@@ -419,3 +419,4 @@
     </script>
 </body>
 </html>
+
