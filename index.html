@@ -22,7 +22,6 @@
             overflow: hidden; touch-action: manipulation;
         }
         
-        /* --- CẬP NHẬT: Hiệu ứng zoom mượt mà hơn --- */
         @keyframes zoomSmooth {
             0% { opacity: 0; transform: scale(0.5); }
             60% { opacity: 1; transform: scale(1.02); }
@@ -30,24 +29,23 @@
         }
         
         .zoom-smooth { 
-            /* Sử dụng cubic-bezier để tạo độ nảy nhẹ nhưng dứt khoát, không bị rung */
             animation: zoomSmooth 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards; 
-            will-change: transform, opacity; /* Báo trước cho trình duyệt để render mượt hơn */
+            will-change: transform, opacity;
         }
 
         .perfect-circle { aspect-ratio: 1 / 1; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-        .wheel-transition { transition: transform 13s cubic-bezier(0.15, 0, 0.15, 1); }
+        
+        /* CẬP NHẬT: Giảm thời gian quay từ 13s xuống 8s */
+        .wheel-transition { transition: transform 8s cubic-bezier(0.15, 0, 0.15, 1); }
 
-        /* Container của mỗi tờ tiền trong múi */
         .money-slot {
             position: absolute;
-            top: 2%; /* Cách mép ngoài một chút */
+            top: 2%;
             left: 50%;
             transform: translateX(-50%);
-            /* Tính toán kích thước để nằm gọn trong múi hình quạt */
             width: 50%; 
             height: auto;
-            aspect-ratio: 2.3 / 1; /* Cố định tỷ lệ 2.3:1 */
+            aspect-ratio: 2.3 / 1;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -77,11 +75,12 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
+        // CẬP NHẬT: Thay đổi mã màu cho 100k và 200k theo yêu cầu
         const MONEY_DATA = {
             20: { color: '#93cbe7', label: '20k', highRes: '20k_orginal.png' },
             50: { color: '#f7c9db', label: '50k', highRes: '50k_orginal.png' },
-            100: { color: '#cdd5ae', label: '100k', highRes: '100k_orginal.png' },
-            200: { color: '#d8bfab', label: '200k', highRes: '200k_orginal.png' },
+            100: { color: '#bcc29d', label: '100k', highRes: '100k_orginal.png' }, // Màu mới
+            200: { color: '#d5c4c8', label: '200k', highRes: '200k_orginal.png' }, // Màu mới
             500: { color: '#a2e5d5', label: '500k', highRes: '500k_orginal.png' }
         };
 
@@ -148,6 +147,10 @@
                     audioBG.current.loop = true;
                     audioCongrat.current = new Audio('Congrat.mp3');
                     audioCongrat.current.loop = true;
+                    
+                    // CẬP NHẬT: Tải trước file âm thanh chúc mừng
+                    audioCongrat.current.load();
+
                     initialized.current = true;
                     preloadHighResImages();
                 }
@@ -178,17 +181,18 @@
                 setRotation(finalRot);
                 setIsSpinning(true);
 
+                // CẬP NHẬT: Logic fade out nhạc nền khớp với thời gian mới (6000ms)
                 setTimeout(() => {
                     let fadeOut = setInterval(() => {
                         if (audioBG.current && audioBG.current.volume > 0.1) audioBG.current.volume -= 0.1;
                         else { if(audioBG.current) audioBG.current.pause(); clearInterval(fadeOut); }
                     }, 150);
-                }, 11000); 
+                }, 6000); 
 
+                // CẬP NHẬT: Kết thúc quay khớp với thời gian mới (8000ms)
                 setTimeout(() => {
                     setIsSpinning(false);
                     setWinResult(target);
-                    // DELAY 0.5s ĐỂ NHÌN KẾT QUẢ TRƯỚC KHI HIỆN MODAL
                     setTimeout(() => {
                         setShowOverlay(true);
                         if (audioCongrat.current && isPlaying) {
@@ -200,7 +204,7 @@
                     const next = currentSpinIndex + 1;
                     setCurrentSpinIndex(next);
                     localStorage.setItem('currentSpinIndex', next);
-                }, 13000);
+                }, 8000);
             };
 
             const wheelBackground = `conic-gradient(
@@ -221,26 +225,19 @@
                     </div>
 
                     <div className="relative w-[340px] h-[340px] md:w-[580px] md:h-[580px]">
-                        
-                        {/* --- CẬP NHẬT: KIM KẾT QUẢ MỚI (NHỎ, NGẮN, 3D) --- */}
                         <div className="absolute top-1/2 right-0 translate-x-[25%] -translate-y-1/2 z-40 w-6 md:w-10 h-6 md:h-10 pointer-events-none drop-shadow-xl">
                             <svg viewBox="0 0 100 100" className="w-full h-full">
-                                {/* Mặt trên của mũi tên (Sáng hơn để tạo khối) */}
                                 <path d="M0 50 L100 20 L80 50 Z" fill="#ef4444" stroke="none"/>
-                                {/* Mặt dưới của mũi tên (Tối hơn để tạo bóng) */}
                                 <path d="M0 50 L80 50 L100 80 Z" fill="#991b1b" stroke="none"/>
-                                {/* Đường kẻ nối đầu và đuôi (Sống lưng mũi tên) */}
                                 <line x1="0" y1="50" x2="80" y2="50" stroke="#7f1d1d" strokeWidth="3" strokeLinecap="round"/>
                             </svg>
                         </div>
-                        {/* -------------------------------------------------- */}
 
                         <div className="perfect-circle w-full h-full bg-white shadow-[0_15px_60px_rgba(0,0,0,0.5)] border-[8px] md:border-[14px] border-white relative">
                             <div className={`absolute inset-0 rounded-full overflow-hidden ${isSpinning ? 'wheel-transition' : ''}`} 
                                  style={{ background: wheelBackground, transform: `rotate(${rotation}deg)` }}>
                                 {WHEEL_SEGMENTS.map((seg, i) => (
                                     <div key={i} className="absolute top-0 left-0 w-full h-full" style={{ transform: `rotate(${i * SEGMENT_ANGLE + HALF_SEGMENT}deg)` }}>
-                                        {/* Ô CHỨA TỜ TIỀN CỐ ĐỊNH TỶ LỆ 2.3 / 1 */}
                                         <div className="money-slot">
                                             <img src={seg.img} className="money-img" />
                                         </div>
@@ -248,14 +245,12 @@
                                 ))}
                             </div>
                             
-                            {/* LOGO GIỮA VÒNG QUAY */}
                             <div onClick={(e) => { e.stopPropagation(); handleSpin(); }} className="absolute z-30 w-[45%] h-[45%] bg-white rounded-full shadow-[0_0_40px_rgba(0,0,0,0.3)] flex items-center justify-center cursor-pointer border-4 border-yellow-100 active:scale-95 transition-transform overflow-hidden">
                                 <img src="Logo.png" className="w-full h-full object-cover p-1" onError={(e)=>e.target.parentNode.innerHTML='<b class="text-red-600 text-3xl font-black">QUAY</b>'}/>
                             </div>
                         </div>
                     </div>
 
-                    {/* Điều khiển nhạc */}
                     <div className="fixed bottom-6 left-6 z-50">
                         <div onClick={(e) => { e.stopPropagation(); toggleMusic(); }} className="p-4 bg-white/20 backdrop-blur-md rounded-full text-white shadow-xl cursor-pointer border border-white/20">
                             {isPlaying ? 
@@ -265,12 +260,10 @@
                         </div>
                     </div>
 
-                    {/* Quản lý cài đặt */}
                     <div onClick={(e) => { e.stopPropagation(); setShowLogin(true); }} className="fixed bottom-6 right-6 p-4 bg-white/20 backdrop-blur-md rounded-full text-white shadow-xl cursor-pointer border border-white/20 z-50">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                     </div>
 
-                    {/* Màn hình kết quả */}
                     {showOverlay && (
                         <div className="fixed inset-0 z-[150] bg-black/90 flex flex-col items-center justify-center p-4" onClick={() => {
                             if (audioCongrat.current) { audioCongrat.current.pause(); audioCongrat.current.currentTime = 0; }
@@ -288,7 +281,6 @@
                         </div>
                     )}
 
-                    {/* Modal Cài đặt & Login (Giữ nguyên logic cũ) */}
                     {showLogin && (
                         <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-md flex items-center justify-center p-4" onClick={(e)=>e.stopPropagation()}>
                             <div className="bg-white rounded-3xl p-8 w-full max-w-xs shadow-2xl text-center">
