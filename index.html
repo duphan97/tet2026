@@ -22,14 +22,17 @@
             overflow: hidden; touch-action: manipulation;
         }
         
-        /* Hiệu ứng zoom mượt mà cho kết quả */
+        /* --- CẬP NHẬT: Hiệu ứng zoom mượt mà hơn --- */
         @keyframes zoomSmooth {
-            0% { opacity: 0; transform: scale(0.2) translateY(50px); }
-            70% { transform: scale(1.05); }
-            100% { opacity: 1; transform: scale(1) translateY(0); }
+            0% { opacity: 0; transform: scale(0.5); }
+            60% { opacity: 1; transform: scale(1.02); }
+            100% { opacity: 1; transform: scale(1); }
         }
+        
         .zoom-smooth { 
-            animation: zoomSmooth 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; 
+            /* Sử dụng cubic-bezier để tạo độ nảy nhẹ nhưng dứt khoát, không bị rung */
+            animation: zoomSmooth 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards; 
+            will-change: transform, opacity; /* Báo trước cho trình duyệt để render mượt hơn */
         }
 
         .perfect-circle { aspect-ratio: 1 / 1; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
@@ -218,12 +221,19 @@
                     </div>
 
                     <div className="relative w-[340px] h-[340px] md:w-[580px] md:h-[580px]">
-                        {/* KIM KẾT QUẢ */}
-                        <div className="absolute top-1/2 right-0 translate-x-[40%] -translate-y-1/2 z-40 w-8 md:w-14 h-8 md:h-14 pointer-events-none drop-shadow-lg">
+                        
+                        {/* --- CẬP NHẬT: KIM KẾT QUẢ MỚI (NHỎ, NGẮN, 3D) --- */}
+                        <div className="absolute top-1/2 right-0 translate-x-[25%] -translate-y-1/2 z-40 w-6 md:w-10 h-6 md:h-10 pointer-events-none drop-shadow-xl">
                             <svg viewBox="0 0 100 100" className="w-full h-full">
-                                <path d="M0 50 L100 15 L75 50 L100 85 Z" fill="#ff0000" stroke="#4a0000" strokeWidth="2" />
+                                {/* Mặt trên của mũi tên (Sáng hơn để tạo khối) */}
+                                <path d="M0 50 L100 20 L80 50 Z" fill="#ef4444" stroke="none"/>
+                                {/* Mặt dưới của mũi tên (Tối hơn để tạo bóng) */}
+                                <path d="M0 50 L80 50 L100 80 Z" fill="#991b1b" stroke="none"/>
+                                {/* Đường kẻ nối đầu và đuôi (Sống lưng mũi tên) */}
+                                <line x1="0" y1="50" x2="80" y2="50" stroke="#7f1d1d" strokeWidth="3" strokeLinecap="round"/>
                             </svg>
                         </div>
+                        {/* -------------------------------------------------- */}
 
                         <div className="perfect-circle w-full h-full bg-white shadow-[0_15px_60px_rgba(0,0,0,0.5)] border-[8px] md:border-[14px] border-white relative">
                             <div className={`absolute inset-0 rounded-full overflow-hidden ${isSpinning ? 'wheel-transition' : ''}`} 
@@ -262,7 +272,7 @@
 
                     {/* Màn hình kết quả */}
                     {showOverlay && (
-                        <div className="fixed inset-0 z-[150] bg-black/90 flex flex-col items-center justify-center p-4 animate-in fade-in duration-300" onClick={() => {
+                        <div className="fixed inset-0 z-[150] bg-black/90 flex flex-col items-center justify-center p-4" onClick={() => {
                             if (audioCongrat.current) { audioCongrat.current.pause(); audioCongrat.current.currentTime = 0; }
                             if (audioBG.current && isPlaying) { audioBG.current.volume = 1; audioBG.current.play(); }
                             setShowOverlay(false);
