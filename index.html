@@ -21,8 +21,8 @@
             min-height: 100dvh; width: 100vw;
             overflow: hidden; touch-action: manipulation;
         }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
         
+        /* Hiệu ứng zoom mượt mà cho kết quả */
         @keyframes zoomSmooth {
             0% { opacity: 0; transform: scale(0.2) translateY(50px); }
             70% { transform: scale(1.05); }
@@ -34,6 +34,27 @@
 
         .perfect-circle { aspect-ratio: 1 / 1; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
         .wheel-transition { transition: transform 13s cubic-bezier(0.15, 0, 0.15, 1); }
+
+        /* Container của mỗi tờ tiền trong múi */
+        .money-slot {
+            position: absolute;
+            top: 10%; /* Cách mép ngoài một chút */
+            left: 50%;
+            transform: translateX(-50%);
+            /* Tính toán kích thước để nằm gọn trong múi hình quạt */
+            width: 18%; 
+            height: auto;
+            aspect-ratio: 2.3 / 1; /* Cố định tỷ lệ 2.3:1 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .money-img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
 
         .text-binh-ngo {
             color: #ff0000;
@@ -107,7 +128,7 @@
                 if (showOverlay) {
                     const fire = () => {
                         confetti({ 
-                            particleCount: 60, spread: 100, origin: { y: 0.6 }, 
+                            particleCount: 50, spread: 80, origin: { y: 0.6 }, 
                             colors: ['#ff0000', '#ffd700', '#ffffff', '#ff69b4'],
                             zIndex: 200 
                         });
@@ -147,7 +168,7 @@
                 let dist = pointerPos - targetAngle;
                 if (dist < 0) dist += 360;
 
-                const safeRange = SEGMENT_ANGLE * 0.7; 
+                const safeRange = SEGMENT_ANGLE * 0.75; 
                 const randomOffset = (Math.random() - 0.5) * safeRange;
                 const finalRot = rotation + (360 - currentRotMod) + extra + dist + randomOffset;
                 
@@ -164,7 +185,7 @@
                 setTimeout(() => {
                     setIsSpinning(false);
                     setWinResult(target);
-                    // DELAY 0.5s TRƯỚC KHI HIỆN MÀN HÌNH KẾT QUẢ
+                    // DELAY 0.5s ĐỂ NHÌN KẾT QUẢ TRƯỚC KHI HIỆN MODAL
                     setTimeout(() => {
                         setShowOverlay(true);
                         if (audioCongrat.current && isPlaying) {
@@ -172,6 +193,7 @@
                             audioCongrat.current.play();
                         }
                     }, 500);
+
                     const next = currentSpinIndex + 1;
                     setCurrentSpinIndex(next);
                     localStorage.setItem('currentSpinIndex', next);
@@ -196,32 +218,28 @@
                     </div>
 
                     <div className="relative w-[340px] h-[340px] md:w-[580px] md:h-[580px]">
-                        {/* MŨI TÊN CHỈ KẾT QUẢ */}
-                        <div className="absolute top-1/2 right-0 translate-x-[40%] -translate-y-1/2 z-40 w-7 md:w-12 h-7 md:h-12 pointer-events-none drop-shadow-lg">
+                        {/* KIM KẾT QUẢ */}
+                        <div className="absolute top-1/2 right-0 translate-x-[40%] -translate-y-1/2 z-40 w-8 md:w-14 h-8 md:h-14 pointer-events-none drop-shadow-lg">
                             <svg viewBox="0 0 100 100" className="w-full h-full">
                                 <path d="M0 50 L100 15 L75 50 L100 85 Z" fill="#ff0000" stroke="#4a0000" strokeWidth="2" />
-                                <path d="M0 50 L75 50" stroke="white" strokeWidth="4" strokeOpacity="0.3" />
                             </svg>
                         </div>
 
-                        <div className="perfect-circle w-full h-full bg-white shadow-[0_15px_50px_rgba(0,0,0,0.4)] border-[8px] md:border-[14px] border-white relative">
+                        <div className="perfect-circle w-full h-full bg-white shadow-[0_15px_60px_rgba(0,0,0,0.5)] border-[8px] md:border-[14px] border-white relative">
                             <div className={`absolute inset-0 rounded-full overflow-hidden ${isSpinning ? 'wheel-transition' : ''}`} 
                                  style={{ background: wheelBackground, transform: `rotate(${rotation}deg)` }}>
                                 {WHEEL_SEGMENTS.map((seg, i) => (
                                     <div key={i} className="absolute top-0 left-0 w-full h-full" style={{ transform: `rotate(${i * SEGMENT_ANGLE + HALF_SEGMENT}deg)` }}>
-                                        {/* TỜ TIỀN TRONG MÚI: CỐ ĐỊNH HIỂN THỊ NGANG (LANDSCAPE) TRÊN MỌI THIẾT BỊ */}
-                                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 w-[24%] h-[40%] flex items-center justify-center pt-[6%]">
-                                            <img 
-                                                src={seg.img} 
-                                                className="w-full h-auto object-contain" 
-                                                style={{ maxWidth: '140%', transform: 'scale(1.2)' }}
-                                            />
+                                        {/* Ô CHỨA TỜ TIỀN CỐ ĐỊNH TỶ LỆ 2.3 / 1 */}
+                                        <div className="money-slot">
+                                            <img src={seg.img} className="money-img" />
                                         </div>
                                     </div>
                                 ))}
                             </div>
                             
-                            <div onClick={(e) => { e.stopPropagation(); handleSpin(); }} className="absolute z-30 w-32 h-32 md:w-56 md:h-56 bg-white rounded-full shadow-[0_0_40px_rgba(0,0,0,0.3)] flex items-center justify-center cursor-pointer border-4 border-yellow-100 active:scale-95 transition-transform">
+                            {/* LOGO GIỮA VÒNG QUAY */}
+                            <div onClick={(e) => { e.stopPropagation(); handleSpin(); }} className="absolute z-30 w-[32%] h-[32%] bg-white rounded-full shadow-[0_0_40px_rgba(0,0,0,0.3)] flex items-center justify-center cursor-pointer border-4 border-yellow-100 active:scale-95 transition-transform overflow-hidden">
                                 <img src="Logo.png" className="w-full h-full object-cover p-1" onError={(e)=>e.target.parentNode.innerHTML='<b class="text-red-600 text-3xl font-black">QUAY</b>'}/>
                             </div>
                         </div>
@@ -229,7 +247,7 @@
 
                     {/* Điều khiển nhạc */}
                     <div className="fixed bottom-6 left-6 z-50">
-                        <div onClick={(e) => { e.stopPropagation(); toggleMusic(); }} className="p-4 bg-white/20 backdrop-blur-md rounded-full text-white shadow-xl cursor-pointer active:scale-90 border border-white/20">
+                        <div onClick={(e) => { e.stopPropagation(); toggleMusic(); }} className="p-4 bg-white/20 backdrop-blur-md rounded-full text-white shadow-xl cursor-pointer border border-white/20">
                             {isPlaying ? 
                                 <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16"><path d="M6 3.5a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-1 0V4a.5.5 0 0 1 .5-.5zm4 0a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-1 0V4a.5.5 0 0 1 .5-.5z"/></svg> :
                                 <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16"><path d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z"/></svg>
@@ -237,17 +255,50 @@
                         </div>
                     </div>
 
-                    {/* Nút Cài đặt */}
-                    <div onClick={(e) => { e.stopPropagation(); setShowLogin(true); }} className="fixed bottom-6 right-6 p-4 bg-white/20 backdrop-blur-md rounded-full text-white shadow-xl cursor-pointer active:scale-90 border border-white/20 z-50">
+                    {/* Quản lý cài đặt */}
+                    <div onClick={(e) => { e.stopPropagation(); setShowLogin(true); }} className="fixed bottom-6 right-6 p-4 bg-white/20 backdrop-blur-md rounded-full text-white shadow-xl cursor-pointer border border-white/20 z-50">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                     </div>
 
-                    {/* Modal Cài đặt */}
+                    {/* Màn hình kết quả */}
+                    {showOverlay && (
+                        <div className="fixed inset-0 z-[150] bg-black/90 flex flex-col items-center justify-center p-4 animate-in fade-in duration-300" onClick={() => {
+                            if (audioCongrat.current) { audioCongrat.current.pause(); audioCongrat.current.currentTime = 0; }
+                            if (audioBG.current && isPlaying) { audioBG.current.volume = 1; audioBG.current.play(); }
+                            setShowOverlay(false);
+                        }}>
+                            <div className="text-center mb-6 zoom-smooth">
+                                <h2 className="text-4xl md:text-5xl font-black text-congrat uppercase tracking-tighter mb-2">Xin chúc mừng!</h2>
+                                <h3 className="text-5xl md:text-6xl font-black text-white drop-shadow-lg">Lì xì {MONEY_DATA[winResult.value].label}</h3>
+                            </div>
+                            <img 
+                                src={MONEY_DATA[winResult.value].highRes} 
+                                className="w-[85%] md:w-[600px] drop-shadow-[0_0_80px_rgba(255,223,0,0.6)] zoom-smooth" 
+                            />
+                        </div>
+                    )}
+
+                    {/* Modal Cài đặt & Login (Giữ nguyên logic cũ) */}
+                    {showLogin && (
+                        <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-md flex items-center justify-center p-4" onClick={(e)=>e.stopPropagation()}>
+                            <div className="bg-white rounded-3xl p-8 w-full max-w-xs shadow-2xl text-center">
+                                <h3 className="text-lg font-bold mb-4">Quản lý</h3>
+                                <form onSubmit={(e) => { e.preventDefault(); if (password === '1709') { setShowLogin(false); setShowSettings(true); setPassword(''); } else { alert('Sai!'); } }}>
+                                    <input type="password" autoFocus value={password} onChange={(e)=>setPassword(e.target.value)} className="w-full border-2 border-gray-100 rounded-xl px-4 py-3 mb-4 text-center text-2xl outline-none" placeholder="****" />
+                                    <div className="flex gap-2">
+                                        <button type="button" onClick={()=>setShowLogin(false)} className="flex-1 py-3 bg-gray-100 rounded-xl font-bold">Hủy</button>
+                                        <button type="submit" className="flex-2 py-3 bg-red-600 text-white rounded-xl font-bold">OK</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+
                     {showSettings && (
                         <div className="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm" onClick={(e)=>e.stopPropagation()}>
                             <div className="bg-white rounded-3xl p-5 w-full max-w-xs shadow-2xl relative">
                                 <button onClick={()=>setShowSettings(false)} className="absolute top-3 right-3 text-gray-400">✕</button>
-                                <h3 className="text-lg font-black text-red-600 border-b pb-2 mb-3 uppercase text-center">Thiết lập</h3>
+                                <h3 className="text-lg font-black text-red-600 border-b pb-2 mb-3 uppercase text-center">Cài đặt</h3>
                                 <div className="space-y-3 max-h-[45vh] overflow-y-auto no-scrollbar">
                                     <div className="flex items-center justify-between bg-red-50 p-2 rounded-xl border border-red-100">
                                         <span className="text-[13px] font-bold text-red-800">Số lượt quay:</span>
@@ -275,42 +326,8 @@
                                         </div>
                                     ))}
                                 </div>
-                                <button onClick={()=>{localStorage.setItem('wheelConfig', JSON.stringify(config)); setShowSettings(false)}} className="w-full mt-4 py-3 bg-red-600 text-white rounded-xl font-bold text-sm">XÁC NHẬN</button>
+                                <button onClick={()=>{localStorage.setItem('wheelConfig', JSON.stringify(config)); setShowSettings(false)}} className="w-full mt-4 py-3 bg-red-600 text-white rounded-xl font-bold text-sm">LƯU THAY ĐỔI</button>
                             </div>
-                        </div>
-                    )}
-
-                    {/* Modal Đăng nhập */}
-                    {showLogin && (
-                        <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-md flex items-center justify-center p-4" onClick={(e)=>e.stopPropagation()}>
-                            <div className="bg-white rounded-3xl p-8 w-full max-w-xs shadow-2xl text-center">
-                                <h3 className="text-lg font-bold mb-4 text-gray-800">Mật khẩu Quản lý</h3>
-                                <form onSubmit={(e) => { e.preventDefault(); if (password === '1709') { setShowLogin(false); setShowSettings(true); setPassword(''); } else { alert('Sai mật khẩu!'); } }}>
-                                    <input type="password" autoFocus value={password} onChange={(e)=>setPassword(e.target.value)} className="w-full border-2 border-gray-100 rounded-xl px-4 py-3 mb-4 text-center text-2xl tracking-widest outline-none focus:border-red-400" placeholder="****" />
-                                    <div className="flex gap-2">
-                                        <button type="button" onClick={()=>setShowLogin(false)} className="flex-1 py-3 bg-gray-100 rounded-xl font-bold text-gray-500">Hủy</button>
-                                        <button type="submit" className="flex-2 py-3 bg-red-600 text-white rounded-xl font-bold px-6">OK</button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Màn hình kết quả */}
-                    {showOverlay && (
-                        <div className="fixed inset-0 z-[150] bg-black/90 flex flex-col items-center justify-center p-4" onClick={() => {
-                            if (audioCongrat.current) { audioCongrat.current.pause(); audioCongrat.current.currentTime = 0; }
-                            if (audioBG.current && isPlaying) { audioBG.current.volume = 1; audioBG.current.play(); }
-                            setShowOverlay(false);
-                        }}>
-                            <div className="text-center mb-6 zoom-smooth">
-                                <h2 className="text-4xl md:text-5xl font-black text-congrat uppercase tracking-tighter mb-2">Xin chúc mừng!</h2>
-                                <h3 className="text-5xl md:text-6xl font-black text-white drop-shadow-lg">Lì xì {MONEY_DATA[winResult.value].label}</h3>
-                            </div>
-                            <img 
-                                src={MONEY_DATA[winResult.value].highRes} 
-                                className="w-[85%] md:w-[600px] drop-shadow-[0_0_80px_rgba(255,223,0,0.6)] zoom-smooth" 
-                            />
                         </div>
                     )}
                 </div>
