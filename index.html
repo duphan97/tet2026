@@ -23,7 +23,6 @@
         }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         
-        /* Hiệu ứng zoom mượt mà cho kết quả */
         @keyframes zoomSmooth {
             0% { opacity: 0; transform: scale(0.2) translateY(50px); }
             70% { transform: scale(1.05); }
@@ -128,14 +127,8 @@
                     initialized.current = true;
                     preloadHighResImages();
                 }
-
-                if (isPlaying) {
-                    audioBG.current.pause();
-                    setIsPlaying(false);
-                } else {
-                    audioBG.current.play().catch(() => {});
-                    setIsPlaying(true);
-                }
+                if (isPlaying) { audioBG.current.pause(); setIsPlaying(false); } 
+                else { audioBG.current.play().catch(() => {}); setIsPlaying(true); }
             };
 
             const handleSpin = () => {
@@ -154,10 +147,8 @@
                 let dist = pointerPos - targetAngle;
                 if (dist < 0) dist += 360;
 
-                // THUẬT TOÁN DỪNG BẤT KỲ VỊ TRÍ NÀO TRÊN MÚI (tránh sát biên 15%)
                 const safeRange = SEGMENT_ANGLE * 0.7; 
                 const randomOffset = (Math.random() - 0.5) * safeRange;
-
                 const finalRot = rotation + (360 - currentRotMod) + extra + dist + randomOffset;
                 
                 setRotation(finalRot);
@@ -173,16 +164,13 @@
                 setTimeout(() => {
                     setIsSpinning(false);
                     setWinResult(target);
-                    
-                    // DELAY 0.3s TRƯỚC KHI HIỆN KẾT QUẢ
                     setTimeout(() => {
                         setShowOverlay(true);
                         if (audioCongrat.current && isPlaying) {
                             audioCongrat.current.currentTime = 0;
                             audioCongrat.current.play();
                         }
-                    }, 300);
-
+                    }, 500);
                     const next = currentSpinIndex + 1;
                     setCurrentSpinIndex(next);
                     localStorage.setItem('currentSpinIndex', next);
@@ -206,7 +194,8 @@
                         <p className="text-4xl md:text-5xl text-binh-ngo mt-1 uppercase italic tracking-widest">Bính Ngọ 2026</p>
                     </div>
 
-                    <div className="relative w-[330px] h-[330px] md:w-[560px] md:h-[560px]">
+                    <div className="relative w-[340px] h-[340px] md:w-[580px] md:h-[580px]">
+                        {/* KIM QUAY */}
                         <div className="absolute top-1/2 right-0 translate-x-[40%] -translate-y-1/2 z-40 w-7 md:w-12 h-7 md:h-12 pointer-events-none drop-shadow-lg">
                             <svg viewBox="0 0 100 100" className="w-full h-full">
                                 <path d="M0 50 L100 15 L75 50 L100 85 Z" fill="#ff0000" stroke="#4a0000" strokeWidth="2" />
@@ -219,9 +208,9 @@
                                  style={{ background: wheelBackground, transform: `rotate(${rotation}deg)` }}>
                                 {WHEEL_SEGMENTS.map((seg, i) => (
                                     <div key={i} className="absolute top-0 left-0 w-full h-full" style={{ transform: `rotate(${i * SEGMENT_ANGLE + HALF_SEGMENT}deg)` }}>
-                                        {/* TĂNG KÍCH THƯỚC TỜ TIỀN TRONG MÚI & ĐẨY SÁT MÉP */}
-                                        <div className="absolute top-[4%] left-1/2 -translate-x-1/2">
-                                            <img src={seg.img} className="w-18 h-12 md:w-36 md:h-22 object-contain transform rotate-90" />
+                                        {/* TỜ TIỀN: KHÔNG XOAY 90 ĐỘ, GỌN TRONG MÚI, SÁT MÉP NGOÀI, KHÔNG CHỒNG MÉP TRONG */}
+                                        <div className="absolute top-[2%] left-1/2 -translate-x-1/2 w-[18%] h-[44%] flex items-start justify-center">
+                                            <img src={seg.img} className="w-full h-full object-contain" />
                                         </div>
                                     </div>
                                 ))}
@@ -247,7 +236,7 @@
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                     </div>
 
-                    {/* Modals */}
+                    {/* Modals Settings & Login (Giữ nguyên) */}
                     {showSettings && (
                         <div className="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm" onClick={(e)=>e.stopPropagation()}>
                             <div className="bg-white rounded-3xl p-5 w-full max-w-xs shadow-2xl relative">
