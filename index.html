@@ -35,8 +35,8 @@
 
         .perfect-circle { aspect-ratio: 1 / 1; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
         
-        /* CẬP NHẬT: Giảm thời gian quay từ 13s xuống 8s */
-        .wheel-transition { transition: transform 8s cubic-bezier(0.15, 0, 0.15, 1); }
+        /* CẬP NHẬT: Cubic-bezier mới giúp giai đoạn cuối dừng siêu chậm và kịch tính */
+        .wheel-transition { transition: transform 8s cubic-bezier(0.1, 0, 0, 1); }
 
         .money-slot {
             position: absolute;
@@ -75,12 +75,11 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        // CẬP NHẬT: Thay đổi mã màu cho 100k và 200k theo yêu cầu
         const MONEY_DATA = {
             20: { color: '#93cbe7', label: '20k', highRes: '20k_orginal.png' },
             50: { color: '#f7c9db', label: '50k', highRes: '50k_orginal.png' },
-            100: { color: '#bcc29d', label: '100k', highRes: '100k_orginal.png' }, // Màu mới
-            200: { color: '#d5c4c8', label: '200k', highRes: '200k_orginal.png' }, // Màu mới
+            100: { color: '#bcc29d', label: '100k', highRes: '100k_orginal.png' }, 
+            200: { color: '#d5c4c8', label: '200k', highRes: '200k_orginal.png' }, 
             500: { color: '#a2e5d5', label: '500k', highRes: '500k_orginal.png' }
         };
 
@@ -148,8 +147,12 @@
                     audioCongrat.current = new Audio('Congrat.mp3');
                     audioCongrat.current.loop = true;
                     
-                    // CẬP NHẬT: Tải trước file âm thanh chúc mừng
-                    audioCongrat.current.load();
+                    // KHẮC PHỤC LỖI NHẠC LẦN ĐẦU: 
+                    // Chạy thử và dừng ngay lập tức để trình duyệt cấp quyền phát cho file này
+                    audioCongrat.current.play().then(() => {
+                        audioCongrat.current.pause();
+                        audioCongrat.current.currentTime = 0;
+                    }).catch(e => console.log("Audio warm-up prevented"));
 
                     initialized.current = true;
                     preloadHighResImages();
@@ -168,7 +171,8 @@
                 const target = valid[Math.floor(Math.random() * valid.length)];
                 
                 const targetAngle = (target.idx * SEGMENT_ANGLE) + HALF_SEGMENT;
-                const extra = 360 * 18; 
+                // CẬP NHẬT: Giảm số vòng quay xuống 8 vòng (360 * 8)
+                const extra = 360 * 8; 
                 const pointerPos = 90; 
                 const currentRotMod = rotation % 360;
                 let dist = pointerPos - targetAngle;
@@ -181,7 +185,6 @@
                 setRotation(finalRot);
                 setIsSpinning(true);
 
-                // CẬP NHẬT: Logic fade out nhạc nền khớp với thời gian mới (6000ms)
                 setTimeout(() => {
                     let fadeOut = setInterval(() => {
                         if (audioBG.current && audioBG.current.volume > 0.1) audioBG.current.volume -= 0.1;
@@ -189,7 +192,6 @@
                     }, 150);
                 }, 6000); 
 
-                // CẬP NHẬT: Kết thúc quay khớp với thời gian mới (8000ms)
                 setTimeout(() => {
                     setIsSpinning(false);
                     setWinResult(target);
