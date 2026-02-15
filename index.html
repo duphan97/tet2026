@@ -34,7 +34,6 @@
         }
 
         .perfect-circle { aspect-ratio: 1 / 1; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-        
         .wheel-transition { transition: transform 8s cubic-bezier(0.1, 0, 0, 1); }
 
         .money-slot {
@@ -94,8 +93,10 @@
         const SEGMENT_ANGLE = 360 / 16;
         const HALF_SEGMENT = SEGMENT_ANGLE / 2;
 
+        const DEFAULT_CONFIG = { totalSpins: 1, rules: [{ id: 1, min: 50, max: 50 }] };
+
         const App = () => {
-            const [config, setConfig] = useState({ totalSpins: 1, rules: [{ id: 1, min: 50, max: 50 }] });
+            const [config, setConfig] = useState(DEFAULT_CONFIG);
             const [currentSpinIndex, setCurrentSpinIndex] = useState(0);
             const [rotation, setRotation] = useState(0);
             const [isSpinning, setIsSpinning] = useState(false);
@@ -121,7 +122,6 @@
                 const savedIdx = localStorage.getItem('currentSpinIndex');
                 if (savedIdx) setCurrentSpinIndex(parseInt(savedIdx));
 
-                // Thực hiện tải sẵn ảnh ngay khi app load
                 preloadHighResImages();
             }, []);
 
@@ -198,14 +198,10 @@
                     const p1 = audioBG.current.play();
                     const p2 = audioCongrat.current.play();
                     Promise.all([p1, p2]).then(() => {
-                        audioBG.current.pause();
-                        audioCongrat.current.pause();
-                        audioBG.current.currentTime = 0;
-                        audioCongrat.current.currentTime = 0;
-                        initialized.current = true;
-                        setIsPlaying(true);
-                        audioBG.current.volume = 1;
-                        audioBG.current.play();
+                        audioBG.current.pause(); audioCongrat.current.pause();
+                        audioBG.current.currentTime = 0; audioCongrat.current.currentTime = 0;
+                        initialized.current = true; setIsPlaying(true);
+                        audioBG.current.volume = 1; audioBG.current.play();
                         executeSpinAction(rotation);
                     }).catch(() => executeSpinAction(rotation));
                 } else {
@@ -219,18 +215,22 @@
                 const val = parseInt(value);
                 if (type === 'min') {
                     newRules[idx].min = val;
-                    // Logic: Min không được lớn hơn Max
-                    if (val > newRules[idx].max) {
-                        newRules[idx].max = val;
-                    }
+                    if (val > newRules[idx].max) newRules[idx].max = val;
                 } else {
                     newRules[idx].max = val;
-                    // Logic: Max không được nhỏ hơn Min
-                    if (val < newRules[idx].min) {
-                        newRules[idx].min = val;
-                    }
+                    if (val < newRules[idx].min) newRules[idx].min = val;
                 }
                 setConfig({...config, rules: newRules});
+            };
+
+            const resetConfig = () => {
+                if(confirm("Bạn có chắc chắn muốn đặt lại toàn bộ cài đặt về mặc định?")) {
+                    localStorage.removeItem('wheelConfig');
+                    localStorage.removeItem('currentSpinIndex');
+                    setConfig(DEFAULT_CONFIG);
+                    setCurrentSpinIndex(0);
+                    alert("Đã đặt lại thành công!");
+                }
             };
 
             const wheelBackground = `conic-gradient(from 0deg, ${WHEEL_SEGMENTS.map((seg, i) => {
@@ -317,13 +317,14 @@
                             <div className="bg-white rounded-3xl p-5 w-full max-w-xs shadow-2xl relative">
                                 <button onClick={()=>setShowSettings(false)} className="absolute top-3 right-3 text-gray-400">✕</button>
                                 <h3 className="text-lg font-black text-red-600 border-b pb-2 mb-3 uppercase text-center">Cài đặt</h3>
-                                <div className="space-y-3 max-h-[45vh] overflow-y-auto no-scrollbar">
+                                <div className="space-y-3 max-h-[45vh] overflow-y-auto no-scrollbar pr-1">
                                     <div className="flex items-center justify-between bg-red-50 p-2 rounded-xl border border-red-100">
                                         <span className="text-[13px] font-bold text-red-800">Số lượt quay:</span>
                                         <div className="flex items-center gap-3 bg-white px-2 py-1 rounded-lg border border-red-200">
                                             <button onClick={()=>setConfig(prev=>{ const val = Math.max(1, prev.totalSpins - 1); return {...prev, totalSpins: val, rules: prev.rules.slice(0, val)}; })} className="font-bold text-red-600 px-1">-</button>
                                             <span className="font-black text-sm">{config.totalSpins}</span>
-                                            <button onClick={()=>setConfig(prev=>{ const val = prev.totalSpins + 1; return {...prev, totalSpins: val, rules: [...prev.rules, {id: val, min: 20, max: 500}]}; })} className="font-bold text-red-600 px-1">+</button>
+                                            {/* ĐÃ CẬP NHẬT: Mặc định thêm mới là 50-50 */}
+                                            <button onClick={()=>setConfig(prev=>{ const val = prev.totalSpins + 1; return {...prev, totalSpins: val, rules: [...prev.rules, {id: val, min: 50, max: 50}]}; })} className="font-bold text-red-600 px-1">+</button>
                                         </div>
                                     </div>
                                     {config.rules.map((rule, idx) => (
@@ -338,7 +339,11 @@
                                         </div>
                                     ))}
                                 </div>
-                                <button onClick={()=>{localStorage.setItem('wheelConfig', JSON.stringify(config)); setShowSettings(false)}} className="w-full mt-4 py-3 bg-red-600 text-white rounded-xl font-bold text-sm">LƯU THAY ĐỔI</button>
+                                <div className="mt-4 flex flex-col gap-2">
+                                    <button onClick={()=>{localStorage.setItem('wheelConfig', JSON.stringify(config)); setShowSettings(false)}} className="w-full py-3 bg-red-600 text-white rounded-xl font-bold text-sm">LƯU THAY ĐỔI</button>
+                                    {/* BỔ SUNG: Nút Reset */}
+                                    <button onClick={resetConfig} className="w-full py-2 bg-gray-200 text-gray-600 rounded-xl font-bold text-[11px] uppercase tracking-wider">Đặt lại (Reset)</button>
+                                </div>
                             </div>
                         </div>
                     )}
