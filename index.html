@@ -170,7 +170,7 @@
                             audioCongrat.current.currentTime = 0;
                             audioCongrat.current.play();
                         }
-                    }, 500);
+                    }, 300);
                     const next = currentSpinIndex + 1;
                     setCurrentSpinIndex(next);
                     localStorage.setItem('currentSpinIndex', next);
@@ -195,7 +195,6 @@
                     </div>
 
                     <div className="relative w-[340px] h-[340px] md:w-[580px] md:h-[580px]">
-                        {/* KIM QUAY */}
                         <div className="absolute top-1/2 right-0 translate-x-[40%] -translate-y-1/2 z-40 w-7 md:w-12 h-7 md:h-12 pointer-events-none drop-shadow-lg">
                             <svg viewBox="0 0 100 100" className="w-full h-full">
                                 <path d="M0 50 L100 15 L75 50 L100 85 Z" fill="#ff0000" stroke="#4a0000" strokeWidth="2" />
@@ -208,9 +207,9 @@
                                  style={{ background: wheelBackground, transform: `rotate(${rotation}deg)` }}>
                                 {WHEEL_SEGMENTS.map((seg, i) => (
                                     <div key={i} className="absolute top-0 left-0 w-full h-full" style={{ transform: `rotate(${i * SEGMENT_ANGLE + HALF_SEGMENT}deg)` }}>
-                                        {/* TỜ TIỀN: KHÔNG XOAY 90 ĐỘ, GỌN TRONG MÚI, SÁT MÉP NGOÀI, KHÔNG CHỒNG MÉP TRONG */}
-                                        <div className="absolute top-[2%] left-1/2 -translate-x-1/2 w-[18%] h-[44%] flex items-start justify-center">
-                                            <img src={seg.img} className="w-full h-full object-contain" />
+                                        {/* TỜ TIỀN ĐƯỢC CĂN GIỮA KHOẢNG CÁCH TỪ LOGO ĐẾN MÉP NGOÀI */}
+                                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 w-[20%] h-[50%] flex items-center justify-center pt-[8%] pb-[2%]">
+                                            <img src={seg.img} className="max-w-full max-h-full object-contain" />
                                         </div>
                                     </div>
                                 ))}
@@ -222,7 +221,7 @@
                         </div>
                     </div>
 
-                    {/* Controls */}
+                    {/* Controls & Modals (Giữ nguyên) */}
                     <div className="fixed bottom-6 left-6 z-50">
                         <div onClick={(e) => { e.stopPropagation(); toggleMusic(); }} className="p-4 bg-white/20 backdrop-blur-md rounded-full text-white shadow-xl cursor-pointer active:scale-90 border border-white/20">
                             {isPlaying ? 
@@ -235,44 +234,6 @@
                     <div onClick={(e) => { e.stopPropagation(); setShowLogin(true); }} className="fixed bottom-6 right-6 p-4 bg-white/20 backdrop-blur-md rounded-full text-white shadow-xl cursor-pointer active:scale-90 border border-white/20 z-50">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                     </div>
-
-                    {/* Modals Settings & Login (Giữ nguyên) */}
-                    {showSettings && (
-                        <div className="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm" onClick={(e)=>e.stopPropagation()}>
-                            <div className="bg-white rounded-3xl p-5 w-full max-w-xs shadow-2xl relative">
-                                <button onClick={()=>setShowSettings(false)} className="absolute top-3 right-3 text-gray-400">✕</button>
-                                <h3 className="text-lg font-black text-red-600 border-b pb-2 mb-3 uppercase text-center">Cài đặt</h3>
-                                <div className="space-y-3 max-h-[45vh] overflow-y-auto no-scrollbar">
-                                    <div className="flex items-center justify-between bg-red-50 p-2 rounded-xl border border-red-100">
-                                        <span className="text-[13px] font-bold text-red-800">Số lượt quay:</span>
-                                        <div className="flex items-center gap-3 bg-white px-2 py-1 rounded-lg border border-red-200">
-                                            <button onClick={()=>setConfig(prev=>{
-                                                const val = Math.max(1, prev.totalSpins - 1);
-                                                return {...prev, totalSpins: val, rules: prev.rules.slice(0, val)};
-                                            })} className="font-bold text-red-600 px-1">-</button>
-                                            <span className="font-black text-sm">{config.totalSpins}</span>
-                                            <button onClick={()=>setConfig(prev=>{
-                                                const val = prev.totalSpins + 1;
-                                                return {...prev, totalSpins: val, rules: [...prev.rules, {id: val, min: 50, max: 50}]};
-                                            })} className="font-bold text-red-600 px-1">+</button>
-                                        </div>
-                                    </div>
-                                    {config.rules.map((rule, idx) => (
-                                        <div key={idx} className="p-2 bg-gray-50 rounded-lg border border-gray-200 flex items-center gap-2">
-                                            <span className="text-[10px] font-bold text-gray-400 w-10">Lượt {idx+1}</span>
-                                            <select value={rule.min} onChange={(e)=>{ const r = [...config.rules]; r[idx].min = parseInt(e.target.value); setConfig({...config, rules: r}); }} className="flex-1 p-1 bg-white rounded border text-[11px] outline-none">
-                                                {Object.keys(MONEY_DATA).map(v=><option key={v} value={v}>Min {v}k</option>)}
-                                            </select>
-                                            <select value={rule.max} onChange={(e)=>{ const r = [...config.rules]; r[idx].max = parseInt(e.target.value); setConfig({...config, rules: r}); }} className="flex-1 p-1 bg-white rounded border text-[11px] outline-none">
-                                                {Object.keys(MONEY_DATA).map(v=><option key={v} value={v}>Max {v}k</option>)}
-                                            </select>
-                                        </div>
-                                    ))}
-                                </div>
-                                <button onClick={()=>{localStorage.setItem('wheelConfig', JSON.stringify(config)); setShowSettings(false)}} className="w-full mt-4 py-3 bg-red-600 text-white rounded-xl font-bold text-sm">LƯU THAY ĐỔI</button>
-                            </div>
-                        </div>
-                    )}
 
                     {showLogin && (
                         <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-md flex items-center justify-center p-4" onClick={(e)=>e.stopPropagation()}>
@@ -289,7 +250,6 @@
                         </div>
                     )}
 
-                    {/* Màn hình kết quả */}
                     {showOverlay && (
                         <div className="fixed inset-0 z-[150] bg-black/90 flex flex-col items-center justify-center p-4" onClick={() => {
                             if (audioCongrat.current) { audioCongrat.current.pause(); audioCongrat.current.currentTime = 0; }
