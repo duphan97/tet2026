@@ -14,37 +14,25 @@
     <style>
         body {
             font-family: 'Segoe UI', Roboto, sans-serif;
-            margin: 0;
-            padding: 0;
+            margin: 0; padding: 0;
             background-image: url('Background.png');
-            background-size: cover;
-            background-position: center center;
-            background-repeat: no-repeat;
-            background-attachment: fixed;
-            min-height: 100dvh;
-            width: 100vw;
-            overflow: hidden;
-            touch-action: manipulation;
+            background-size: cover; background-position: center;
+            background-repeat: no-repeat; background-attachment: fixed;
+            min-height: 100dvh; width: 100vw;
+            overflow: hidden; touch-action: manipulation;
         }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .fade-in { animation: fadeIn 0.3s ease-out forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
         
-        .perfect-circle {
-            aspect-ratio: 1 / 1;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
+        .perfect-circle { aspect-ratio: 1 / 1; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .wheel-transition { transition: transform 13s cubic-bezier(0.15, 0, 0.15, 1); }
 
-        .wheel-transition {
-            transition: transform 13s cubic-bezier(0.15, 0, 0.15, 1);
-        }
-
-        .text-shimmer {
-            color: #facc15;
-            text-shadow: 0 0 15px rgba(250, 204, 21, 0.8), 0 0 30px rgba(234, 179, 8, 0.6);
+        /* Chữ đỏ tươi nổi bật */
+        .text-binh-ngo {
+            color: #ff0000;
+            text-shadow: 2px 2px 0px #fff, 0 0 15px rgba(255, 0, 0, 0.5);
+            font-weight: 900;
         }
     </style>
 </head>
@@ -81,6 +69,7 @@
             const [showOverlay, setShowOverlay] = useState(false);
             const [showSettings, setShowSettings] = useState(false);
             const [showLogin, setShowLogin] = useState(false);
+            const [isPlaying, setIsPlaying] = useState(true);
             const [password, setPassword] = useState('');
             const [winResult, setWinResult] = useState(null);
             
@@ -94,7 +83,6 @@
                 const savedIdx = localStorage.getItem('currentSpinIndex');
                 if (savedIdx) setCurrentSpinIndex(parseInt(savedIdx));
 
-                // CHẠM BẤT KỲ ĐÂU ĐỂ PHÁT NHẠC
                 const handleFirstInteraction = () => {
                     if (!initialized.current) {
                         audioBG.current = new Audio('Background.mp3'); 
@@ -103,39 +91,39 @@
                         audioCongrat.current = new Audio('Congrat.mp3');
                         audioCongrat.current.loop = true;
                         initialized.current = true;
+                        setIsPlaying(true);
                     }
                 };
-
                 window.addEventListener('click', handleFirstInteraction);
                 window.addEventListener('touchstart', handleFirstInteraction);
-
                 return () => {
                     window.removeEventListener('click', handleFirstInteraction);
                     window.removeEventListener('touchstart', handleFirstInteraction);
                 };
             }, []);
 
-            // Hiệu ứng pháo hoa khi trúng thưởng
-            const fireEffects = () => {
-                const duration = 5 * 1000;
-                const animationEnd = Date.now() + duration;
-                const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 200 };
+            // LOOP HIỆU ỨNG RUNG RINH / PHÁO HOA
+            useEffect(() => {
+                let interval;
+                if (showOverlay) {
+                    const fire = () => {
+                        confetti({ particleCount: 40, spread: 70, origin: { y: 0.6 }, colors: ['#ff0000', '#ffd700', '#ffffff'] });
+                    };
+                    fire();
+                    interval = setInterval(fire, 1500);
+                }
+                return () => clearInterval(interval);
+            }, [showOverlay]);
 
-                const randomInRange = (min, max) => Math.random() * (max - min) + min;
-
-                const interval = setInterval(function() {
-                    const timeLeft = animationEnd - Date.now();
-                    if (timeLeft <= 0) return clearInterval(interval);
-
-                    const particleCount = 50 * (timeLeft / duration);
-                    confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
-                    confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
-                }, 250);
+            const toggleMusic = () => {
+                if (!audioBG.current) return;
+                if (isPlaying) { audioBG.current.pause(); setIsPlaying(false); }
+                else { audioBG.current.play(); setIsPlaying(true); }
             };
 
             const handleSpin = () => {
                 if (isSpinning) return;
-                if (audioBG.current) { audioBG.current.volume = 1; audioBG.current.play().catch(() => {}); }
+                if (audioBG.current && isPlaying) { audioBG.current.volume = 1; audioBG.current.play(); }
 
                 const rule = config.rules[currentSpinIndex % config.totalSpins] || config.rules[0];
                 const valid = WHEEL_SEGMENTS.map((s, i) => ({...s, idx: i})).filter(s => s.value >= rule.min && s.value <= rule.max);
@@ -147,20 +135,15 @@
                 const currentRotMod = rotation % 360;
                 let dist = pointerPos - targetAngle;
                 if (dist < 0) dist += 360;
-                const dramaOffset = (Math.random() > 0.5 ? 9.6 : -9.6);
-                const finalRot = rotation + (360 - currentRotMod) + extra + dist + dramaOffset;
+                const finalRot = rotation + (360 - currentRotMod) + extra + dist + (Math.random() > 0.5 ? 9.6 : -9.6);
                 
                 setRotation(finalRot);
                 setIsSpinning(true);
 
                 setTimeout(() => {
                     let fadeOut = setInterval(() => {
-                        if (audioBG.current && audioBG.current.volume > 0.1) {
-                            audioBG.current.volume -= 0.1;
-                        } else {
-                            if(audioBG.current) audioBG.current.pause();
-                            clearInterval(fadeOut);
-                        }
+                        if (audioBG.current && audioBG.current.volume > 0.1) audioBG.current.volume -= 0.1;
+                        else { if(audioBG.current) audioBG.current.pause(); clearInterval(fadeOut); }
                     }, 150);
                 }, 11000); 
 
@@ -168,21 +151,14 @@
                     setIsSpinning(false);
                     setWinResult(target);
                     setShowOverlay(true);
-                    fireEffects(); // Chạy hiệu ứng pháo hoa
-                    if (audioCongrat.current) {
+                    if (audioCongrat.current && isPlaying) {
                         audioCongrat.current.currentTime = 0;
-                        audioCongrat.current.play().catch(() => {});
+                        audioCongrat.current.play();
                     }
                     const next = currentSpinIndex + 1;
                     setCurrentSpinIndex(next);
                     localStorage.setItem('currentSpinIndex', next);
                 }, 13000);
-            };
-
-            const closeOverlay = () => {
-                if (audioCongrat.current) { audioCongrat.current.pause(); audioCongrat.current.currentTime = 0; }
-                if (audioBG.current) { audioBG.current.volume = 1; audioBG.current.play().catch(() => {}); }
-                setShowOverlay(false);
             };
 
             const wheelBackground = `conic-gradient(
@@ -194,31 +170,26 @@
 
             return (
                 <div className="min-h-[100dvh] w-full flex flex-col items-center pt-8 select-none overflow-hidden">
-                    <div className="z-10 text-center mb-8 px-4">
-                        <h1 className="text-6xl md:text-7xl font-black text-red-600 drop-shadow-2xl font-serif uppercase tracking-tighter">Lì Xì</h1>
-                        {/* CHỮ BÍNH NGỌ 2026 NỔI BẬT HƠN */}
-                        <p className="text-4xl md:text-5xl font-black text-shimmer mt-2 uppercase italic">Bính Ngọ 2026</p>
+                    <div className="z-10 text-center mb-6 px-4">
+                        <h1 className="text-6xl font-black text-red-600 drop-shadow-xl font-serif uppercase tracking-tighter">Lì Xì</h1>
+                        <p className="text-4xl md:text-5xl text-binh-ngo mt-1 uppercase italic tracking-widest">Bính Ngọ 2026</p>
                     </div>
 
-                    <div className="relative w-[340px] h-[340px] md:w-[540px] md:h-[540px]">
-                        {/* MŨI TÊN NHỎ HƠN, ĐUÔI ÉN, SÁT MÉP */}
-                        <div className="absolute top-1/2 right-[-28px] md:right-[-48px] -translate-y-1/2 z-40 w-12 md:w-20 h-10 pointer-events-none drop-shadow-[0_4px_6px_rgba(0,0,0,0.6)]">
+                    <div className="relative w-[330px] h-[330px] md:w-[540px] md:h-[540px]">
+                        {/* MŨI TÊN NHỎ GỌN, ĐUÔI ÉN, KHÔNG BỊ MẤT TRÊN MOBILE */}
+                        <div className="absolute top-1/2 right-0 translate-x-[15%] -translate-y-1/2 z-40 w-10 md:w-16 h-8 pointer-events-none drop-shadow-md">
                             <svg viewBox="0 0 100 60" className="w-full h-full">
-                                <defs>
-                                    <linearGradient id="g3d" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stopColor="#ff4d4d"/><stop offset="50%" stopColor="#ff0000"/><stop offset="100%" stopColor="#800000"/></linearGradient>
-                                </defs>
-                                {/* Hình dáng đuôi én (lõm vào ở tọa độ 80,30) */}
-                                <path d="M0 30 L100 5 L80 30 L100 55 Z" fill="url(#g3d)" stroke="#4a0000" strokeWidth="1" />
-                                <line x1="0" y1="30" x2="80" y2="30" stroke="white" strokeWidth="0.5" strokeOpacity="0.4" />
+                                <path d="M0 30 L100 5 L75 30 L100 55 Z" fill="#ff0000" stroke="#4a0000" strokeWidth="1" />
+                                <path d="M0 30 L75 30" stroke="white" strokeWidth="2" strokeOpacity="0.3" />
                             </svg>
                         </div>
 
-                        <div className="perfect-circle w-full h-full bg-white shadow-[0_20px_60px_rgba(0,0,0,0.5)] border-[8px] md:border-[14px] border-white relative">
+                        <div className="perfect-circle w-full h-full bg-white shadow-[0_15px_50px_rgba(0,0,0,0.4)] border-[8px] md:border-[14px] border-white relative">
                             <div className={`absolute inset-0 rounded-full overflow-hidden border-2 border-black/5 ${isSpinning ? 'wheel-transition' : ''}`} style={{ background: wheelBackground, transform: `rotate(${rotation}deg)` }}>
                                 {WHEEL_SEGMENTS.map((seg, i) => (
                                     <div key={i} className="absolute top-0 left-0 w-full h-full" style={{ transform: `rotate(${i * SEGMENT_ANGLE + HALF_SEGMENT}deg)` }}>
                                         <div className="absolute top-[8%] left-1/2 -translate-x-1/2">
-                                            <img src={seg.img} className="w-16 h-10 md:w-28 md:h-16 object-contain transform rotate-90" />
+                                            <img src={seg.img} className="w-14 h-9 md:w-28 md:h-16 object-contain transform rotate-90" />
                                         </div>
                                     </div>
                                 ))}
@@ -230,77 +201,87 @@
                         </div>
                     </div>
 
-                    {/* Cài đặt */}
+                    {/* Cài đặt rút gọn */}
                     {showSettings && (
                         <div className="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm">
-                            <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl relative fade-in">
-                                <button onClick={()=>setShowSettings(false)} className="absolute top-4 right-4 text-gray-400 text-xl">✕</button>
-                                <h3 className="text-xl font-bold text-red-600 border-b pb-3 mb-4 uppercase text-center font-black">Cài đặt lượt quay</h3>
-                                <div className="space-y-4 max-h-[50vh] overflow-y-auto no-scrollbar pr-1">
-                                    <div className="flex items-center justify-between bg-red-50 p-4 rounded-2xl border border-red-100">
-                                        <span className="font-bold text-red-800">Số lượt quay:</span>
-                                        <div className="flex items-center gap-4 bg-white px-3 py-1 rounded-xl shadow-sm border border-red-200">
+                            <div className="bg-white rounded-3xl p-5 w-full max-w-xs shadow-2xl relative fade-in">
+                                <button onClick={()=>setShowSettings(false)} className="absolute top-3 right-3 text-gray-400">✕</button>
+                                <h3 className="text-lg font-black text-red-600 border-b pb-2 mb-3 uppercase text-center">Cài đặt</h3>
+                                <div className="space-y-3 max-h-[45vh] overflow-y-auto no-scrollbar">
+                                    <div className="flex items-center justify-between bg-red-50 p-2 rounded-xl border border-red-100">
+                                        <span className="text-[13px] font-bold text-red-800">Số lượt quay:</span>
+                                        <div className="flex items-center gap-3 bg-white px-2 py-1 rounded-lg border border-red-200">
                                             <button onClick={()=>setConfig(prev=>{
                                                 const val = Math.max(1, prev.totalSpins - 1);
                                                 return {...prev, totalSpins: val, rules: prev.rules.slice(0, val)};
-                                            })} className="w-8 h-8 text-2xl font-bold text-red-600">-</button>
-                                            <span className="font-black text-xl w-6 text-center">{config.totalSpins}</span>
+                                            })} className="font-bold text-red-600 px-1">-</button>
+                                            <span className="font-black text-sm">{config.totalSpins}</span>
                                             <button onClick={()=>setConfig(prev=>{
                                                 const val = prev.totalSpins + 1;
-                                                const newRules = [...prev.rules, {id: val, min: 50, max: 50}];
-                                                return {...prev, totalSpins: val, rules: newRules};
-                                            })} className="w-8 h-8 text-2xl font-bold text-red-600">+</button>
+                                                return {...prev, totalSpins: val, rules: [...prev.rules, {id: val, min: 50, max: 50}]};
+                                            })} className="font-bold text-red-600 px-1">+</button>
                                         </div>
                                     </div>
                                     {config.rules.map((rule, idx) => (
-                                        <div key={idx} className="p-3 bg-gray-50 rounded-xl border border-gray-200">
-                                            <p className="text-[10px] font-black text-gray-400 mb-1 uppercase text-center font-bold">Lượt {idx+1}</p>
-                                            <div className="flex gap-2">
-                                                <select value={rule.min} onChange={(e)=>{ const r = [...config.rules]; r[idx].min = parseInt(e.target.value); setConfig({...config, rules: r}); }} className="flex-1 p-2 bg-white rounded-lg text-xs border outline-none">
-                                                    {Object.keys(MONEY_DATA).map(v=><option key={v} value={v}>Min: {v}k</option>)}
-                                                </select>
-                                                <select value={rule.max} onChange={(e)=>{ const r = [...config.rules]; r[idx].max = parseInt(e.target.value); setConfig({...config, rules: r}); }} className="flex-1 p-2 bg-white rounded-lg text-xs border outline-none">
-                                                    {Object.keys(MONEY_DATA).map(v=><option key={v} value={v}>Max: {v}k</option>)}
-                                                </select>
-                                            </div>
+                                        <div key={idx} className="p-2 bg-gray-50 rounded-lg border border-gray-200 flex items-center gap-2">
+                                            <span className="text-[10px] font-bold text-gray-400 w-10">Lượt {idx+1}</span>
+                                            <select value={rule.min} onChange={(e)=>{ const r = [...config.rules]; r[idx].min = parseInt(e.target.value); setConfig({...config, rules: r}); }} className="flex-1 p-1 bg-white rounded border text-[11px] outline-none">
+                                                {Object.keys(MONEY_DATA).map(v=><option key={v} value={v}>Min {v}k</option>)}
+                                            </select>
+                                            <select value={rule.max} onChange={(e)=>{ const r = [...config.rules]; r[idx].max = parseInt(e.target.value); setConfig({...config, rules: r}); }} className="flex-1 p-1 bg-white rounded border text-[11px] outline-none">
+                                                {Object.keys(MONEY_DATA).map(v=><option key={v} value={v}>Max {v}k</option>)}
+                                            </select>
                                         </div>
                                     ))}
                                 </div>
-                                <button onClick={()=>{localStorage.setItem('wheelConfig', JSON.stringify(config)); setShowSettings(false)}} className="w-full mt-6 py-4 bg-red-600 text-white rounded-2xl font-bold shadow-lg">LƯU CẤU HÌNH</button>
+                                <button onClick={()=>{localStorage.setItem('wheelConfig', JSON.stringify(config)); setShowSettings(false)}} className="w-full mt-4 py-3 bg-red-600 text-white rounded-xl font-bold text-sm">LƯU THAY ĐỔI</button>
                             </div>
                         </div>
                     )}
+
+                    {/* Nút Nhạc (Dưới Trái) & Cài đặt (Dưới Phải) */}
+                    <div className="fixed bottom-6 left-6 flex gap-4">
+                        <div onClick={toggleMusic} className="p-4 bg-white/20 backdrop-blur-md rounded-full text-white shadow-xl cursor-pointer active:scale-90 transition-all border border-white/20">
+                            {isPlaying ? 
+                                <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M6 3.5a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-1 0V4a.5.5 0 0 1 .5-.5zm4 0a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-1 0V4a.5.5 0 0 1 .5-.5z"/></svg> :
+                                <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z"/></svg>
+                            }
+                        </div>
+                    </div>
+
+                    <div onClick={() => setShowLogin(true)} className="fixed bottom-6 right-6 p-4 bg-white/20 backdrop-blur-md rounded-full text-white shadow-xl cursor-pointer active:scale-90 transition-all border border-white/20">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                    </div>
 
                     {/* Login */}
                     {showLogin && (
                         <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
                             <div className="bg-white rounded-3xl p-8 w-full max-w-xs shadow-2xl text-center fade-in">
-                                <h3 className="text-lg font-bold mb-4 font-black">Mã quản lý</h3>
-                                <form onSubmit={(e) => { e.preventDefault(); if (password === '1709') { setShowLogin(false); setShowSettings(true); setPassword(''); } else { alert('Mật khẩu không đúng!'); } }}>
+                                <h3 className="text-lg font-bold mb-4">Quản lý</h3>
+                                <form onSubmit={(e) => { e.preventDefault(); if (password === '1709') { setShowLogin(false); setShowSettings(true); setPassword(''); } else { alert('Sai!'); } }}>
                                     <input type="password" autoFocus value={password} onChange={(e)=>setPassword(e.target.value)} className="w-full border-2 border-gray-100 rounded-xl px-4 py-3 mb-4 text-center text-2xl tracking-widest outline-none focus:border-red-400" placeholder="****" />
-                                    <div className="flex gap-3">
-                                        <button type="button" onClick={() => {setShowLogin(false); setPassword('');}} className="flex-1 py-3 bg-gray-200 text-gray-700 rounded-xl font-bold">Trở lại</button>
-                                        <button type="submit" className="flex-[2] py-3 bg-red-600 text-white rounded-xl font-bold">Xác nhận</button>
+                                    <div className="flex gap-2">
+                                        <button type="button" onClick={()=>setShowLogin(false)} className="flex-1 py-3 bg-gray-100 rounded-xl font-bold">Hủy</button>
+                                        <button type="submit" className="flex-2 py-3 bg-red-600 text-white rounded-xl font-bold px-4">OK</button>
                                     </div>
                                 </form>
                             </div>
                         </div>
                     )}
 
-                    {/* KẾT QUẢ (TỐI GIẢN, ẢNH NÉT CAO, HIỆU ỨNG MẠNH) */}
+                    {/* Màn hình kết quả (TỐI GIẢN + LOOP PHÁO HOA) */}
                     {showOverlay && (
-                        <div className="fixed inset-0 z-[150] bg-black/90 flex flex-col items-center justify-center p-4 fade-in" onClick={closeOverlay}>
+                        <div className="fixed inset-0 z-[150] bg-black/90 flex flex-col items-center justify-center p-4 fade-in" onClick={() => {
+                            if (audioCongrat.current) { audioCongrat.current.pause(); audioCongrat.current.currentTime = 0; }
+                            if (audioBG.current && isPlaying) { audioBG.current.volume = 1; audioBG.current.play(); }
+                            setShowOverlay(false);
+                        }}>
                             <img 
                                 src={MONEY_DATA[winResult.value].highRes} 
-                                className="w-[90%] md:w-[600px] drop-shadow-[0_0_100px_rgba(255,223,0,0.8)] scale-110 md:scale-125" 
-                                style={{animation: 'fadeIn 0.5s ease-out'}}
+                                className="w-[90%] md:w-[600px] drop-shadow-[0_0_100px_rgba(255,223,0,0.8)] scale-110" 
                             />
                         </div>
                     )}
-
-                    <div onClick={() => setShowLogin(true)} className="fixed bottom-6 right-6 p-4 bg-white/10 backdrop-blur-sm rounded-full text-white/30 cursor-pointer hover:bg-white/20 transition-all shadow-xl">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                    </div>
                 </div>
             );
         };
