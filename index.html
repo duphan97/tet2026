@@ -33,6 +33,11 @@
             text-shadow: 2px 2px 0px #fff, 0 0 15px rgba(255, 0, 0, 0.5);
             font-weight: 900;
         }
+
+        .text-congrat {
+            color: #fbbf24;
+            text-shadow: 0 0 20px rgba(251, 191, 36, 0.8), 2px 2px 2px rgba(0,0,0,0.5);
+        }
     </style>
 </head>
 <body>
@@ -68,7 +73,7 @@
             const [showOverlay, setShowOverlay] = useState(false);
             const [showSettings, setShowSettings] = useState(false);
             const [showLogin, setShowLogin] = useState(false);
-            const [isPlaying, setIsPlaying] = useState(false); // Mặc định chưa phát
+            const [isPlaying, setIsPlaying] = useState(false); 
             const [password, setPassword] = useState('');
             const [winResult, setWinResult] = useState(null);
             
@@ -83,7 +88,6 @@
                 if (savedIdx) setCurrentSpinIndex(parseInt(savedIdx));
             }, []);
 
-            // Hàm tải trước ảnh để không bị lag khi hiện kết quả
             const preloadHighResImages = () => {
                 Object.values(MONEY_DATA).forEach(item => {
                     const img = new Image();
@@ -91,15 +95,21 @@
                 });
             };
 
-            // Vòng lặp hiệu ứng ruy băng/pháo hoa
+            // Vòng lặp ruy băng nổi bật lớp trên cùng
             useEffect(() => {
                 let interval;
                 if (showOverlay) {
                     const fire = () => {
-                        confetti({ particleCount: 40, spread: 70, origin: { y: 0.6 }, colors: ['#ff0000', '#ffd700', '#ffffff'] });
+                        confetti({ 
+                            particleCount: 50, 
+                            spread: 80, 
+                            origin: { y: 0.6 }, 
+                            colors: ['#ff0000', '#ffd700', '#ffffff', '#ff69b4'],
+                            zIndex: 200 // Nổi bật trên cả overlay
+                        });
                     };
                     fire();
-                    interval = setInterval(fire, 1500);
+                    interval = setInterval(fire, 1200);
                 }
                 return () => clearInterval(interval);
             }, [showOverlay]);
@@ -111,7 +121,7 @@
                     audioCongrat.current = new Audio('Congrat.mp3');
                     audioCongrat.current.loop = true;
                     initialized.current = true;
-                    preloadHighResImages(); // Tải trước ảnh ngay khi nhấn play lần đầu
+                    preloadHighResImages();
                 }
 
                 if (isPlaying) {
@@ -125,8 +135,6 @@
 
             const handleSpin = () => {
                 if (isSpinning) return;
-                
-                // Nếu chưa bật nhạc mà bấm quay, tự động kích hoạt
                 if (!initialized.current) toggleMusic();
                 else if (isPlaying) { audioBG.current.volume = 1; audioBG.current.play(); }
 
@@ -166,10 +174,14 @@
                 }, 13000);
             };
 
+            // Vẽ conic-gradient sắc nét không lem viền
             const wheelBackground = `conic-gradient(
+                from 0deg,
                 ${WHEEL_SEGMENTS.map((seg, i) => {
                     const color = MONEY_DATA[seg.value].color;
-                    return `${color} ${i * SEGMENT_ANGLE}deg ${(i + 1) * SEGMENT_ANGLE}deg`;
+                    const start = i * SEGMENT_ANGLE;
+                    const end = (i + 1) * SEGMENT_ANGLE;
+                    return `${color} ${start}deg ${end}deg`;
                 }).join(', ')}
             )`;
 
@@ -181,17 +193,18 @@
                     </div>
 
                     <div className="relative w-[320px] h-[320px] md:w-[540px] md:h-[540px]">
-                        {/* MŨI TÊN SIÊU NGẮN (GIẢM 1/2), ĐƯA SÁT MÉP */}
-                        <div className="absolute top-1/2 right-0 translate-x-[40%] -translate-y-1/2 z-40 w-6 md:w-10 h-6 md:h-10 pointer-events-none drop-shadow-md">
+                        {/* MŨI TÊN SIÊU NGẮN, SÁT MÉP */}
+                        <div className="absolute top-1/2 right-0 translate-x-[40%] -translate-y-1/2 z-40 w-7 md:w-12 h-7 md:h-12 pointer-events-none drop-shadow-lg">
                             <svg viewBox="0 0 100 100" className="w-full h-full">
-                                {/* Vẽ mũi tên ngắn với đuôi én sâu */}
-                                <path d="M0 50 L100 10 L70 50 L100 90 Z" fill="#ff0000" stroke="#4a0000" strokeWidth="2" />
-                                <path d="M0 50 L70 50" stroke="white" strokeWidth="3" strokeOpacity="0.4" />
+                                <path d="M0 50 L100 15 L75 50 L100 85 Z" fill="#ff0000" stroke="#4a0000" strokeWidth="2" />
+                                <path d="M0 50 L75 50" stroke="white" strokeWidth="4" strokeOpacity="0.3" />
                             </svg>
                         </div>
 
                         <div className="perfect-circle w-full h-full bg-white shadow-[0_15px_50px_rgba(0,0,0,0.4)] border-[8px] md:border-[14px] border-white relative">
-                            <div className={`absolute inset-0 rounded-full overflow-hidden border-2 border-black/5 ${isSpinning ? 'wheel-transition' : ''}`} style={{ background: wheelBackground, transform: `rotate(${rotation}deg)` }}>
+                            {/* Vòng quay với màu sắc được xử lý sắc nét */}
+                            <div className={`absolute inset-0 rounded-full overflow-hidden shadow-[inset_0_0_2px_rgba(0,0,0,0.2)] ${isSpinning ? 'wheel-transition' : ''}`} 
+                                 style={{ background: wheelBackground, transform: `rotate(${rotation}deg)` }}>
                                 {WHEEL_SEGMENTS.map((seg, i) => (
                                     <div key={i} className="absolute top-0 left-0 w-full h-full" style={{ transform: `rotate(${i * SEGMENT_ANGLE + HALF_SEGMENT}deg)` }}>
                                         <div className="absolute top-[8%] left-1/2 -translate-x-1/2">
@@ -207,9 +220,9 @@
                         </div>
                     </div>
 
-                    {/* Điều khiển Nhạc (Dưới Trái) */}
+                    {/* Controls */}
                     <div className="fixed bottom-6 left-6 flex gap-4 z-50">
-                        <div onClick={(e) => { e.stopPropagation(); toggleMusic(); }} className="p-4 bg-white/20 backdrop-blur-md rounded-full text-white shadow-xl cursor-pointer active:scale-90 transition-all border border-white/20">
+                        <div onClick={(e) => { e.stopPropagation(); toggleMusic(); }} className="p-4 bg-white/20 backdrop-blur-md rounded-full text-white shadow-xl cursor-pointer active:scale-90 border border-white/20">
                             {isPlaying ? 
                                 <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16"><path d="M6 3.5a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-1 0V4a.5.5 0 0 1 .5-.5zm4 0a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-1 0V4a.5.5 0 0 1 .5-.5z"/></svg> :
                                 <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16"><path d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z"/></svg>
@@ -217,12 +230,11 @@
                         </div>
                     </div>
 
-                    {/* Nút Cài đặt (Dưới Phải) */}
-                    <div onClick={(e) => { e.stopPropagation(); setShowLogin(true); }} className="fixed bottom-6 right-6 p-4 bg-white/20 backdrop-blur-md rounded-full text-white shadow-xl cursor-pointer active:scale-90 transition-all border border-white/20 z-50">
+                    <div onClick={(e) => { e.stopPropagation(); setShowLogin(true); }} className="fixed bottom-6 right-6 p-4 bg-white/20 backdrop-blur-md rounded-full text-white shadow-xl cursor-pointer active:scale-90 border border-white/20 z-50">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                     </div>
 
-                    {/* Cài đặt */}
+                    {/* Settings & Login Modal - UI giữ nguyên như yêu cầu trước */}
                     {showSettings && (
                         <div className="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm" onClick={(e)=>e.stopPropagation()}>
                             <div className="bg-white rounded-3xl p-5 w-full max-w-xs shadow-2xl relative fade-in">
@@ -260,7 +272,6 @@
                         </div>
                     )}
 
-                    {/* Login */}
                     {showLogin && (
                         <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-md flex items-center justify-center p-4" onClick={(e)=>e.stopPropagation()}>
                             <div className="bg-white rounded-3xl p-8 w-full max-w-xs shadow-2xl text-center fade-in">
@@ -276,16 +287,21 @@
                         </div>
                     )}
 
-                    {/* Màn hình kết quả */}
+                    {/* MÀN HÌNH KẾT QUẢ MỚI: XIN CHÚC MỪNG + LÌ XÌ ...K */}
                     {showOverlay && (
                         <div className="fixed inset-0 z-[150] bg-black/90 flex flex-col items-center justify-center p-4 fade-in" onClick={() => {
                             if (audioCongrat.current) { audioCongrat.current.pause(); audioCongrat.current.currentTime = 0; }
                             if (audioBG.current && isPlaying) { audioBG.current.volume = 1; audioBG.current.play(); }
                             setShowOverlay(false);
                         }}>
+                            <div className="text-center mb-8">
+                                <h2 className="text-4xl md:text-5xl font-black text-congrat uppercase tracking-tighter mb-2 animate-bounce">Xin chúc mừng!</h2>
+                                <h3 className="text-5xl md:text-6xl font-black text-white drop-shadow-lg">Lì xì {MONEY_DATA[winResult.value].label}</h3>
+                            </div>
                             <img 
                                 src={MONEY_DATA[winResult.value].highRes} 
-                                className="w-[90%] md:w-[600px] drop-shadow-[0_0_100px_rgba(255,223,0,0.8)] scale-110" 
+                                className="w-[85%] md:w-[600px] drop-shadow-[0_0_80px_rgba(255,223,0,0.6)] scale-110" 
+                                style={{animation: 'fadeIn 0.5s ease-out'}}
                             />
                         </div>
                     )}
