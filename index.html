@@ -28,7 +28,6 @@
         .perfect-circle { aspect-ratio: 1 / 1; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
         .wheel-transition { transition: transform 13s cubic-bezier(0.15, 0, 0.15, 1); }
 
-        /* Chữ đỏ tươi nổi bật */
         .text-binh-ngo {
             color: #ff0000;
             text-shadow: 2px 2px 0px #fff, 0 0 15px rgba(255, 0, 0, 0.5);
@@ -69,7 +68,7 @@
             const [showOverlay, setShowOverlay] = useState(false);
             const [showSettings, setShowSettings] = useState(false);
             const [showLogin, setShowLogin] = useState(false);
-            const [isPlaying, setIsPlaying] = useState(true);
+            const [isPlaying, setIsPlaying] = useState(false); // Mặc định chưa phát
             const [password, setPassword] = useState('');
             const [winResult, setWinResult] = useState(null);
             
@@ -82,27 +81,17 @@
                 if (saved) setConfig(JSON.parse(saved));
                 const savedIdx = localStorage.getItem('currentSpinIndex');
                 if (savedIdx) setCurrentSpinIndex(parseInt(savedIdx));
-
-                const handleFirstInteraction = () => {
-                    if (!initialized.current) {
-                        audioBG.current = new Audio('Background.mp3'); 
-                        audioBG.current.loop = true;
-                        audioBG.current.play().catch(() => {});
-                        audioCongrat.current = new Audio('Congrat.mp3');
-                        audioCongrat.current.loop = true;
-                        initialized.current = true;
-                        setIsPlaying(true);
-                    }
-                };
-                window.addEventListener('click', handleFirstInteraction);
-                window.addEventListener('touchstart', handleFirstInteraction);
-                return () => {
-                    window.removeEventListener('click', handleFirstInteraction);
-                    window.removeEventListener('touchstart', handleFirstInteraction);
-                };
             }, []);
 
-            // LOOP HIỆU ỨNG RUNG RINH / PHÁO HOA
+            // Hàm tải trước ảnh để không bị lag khi hiện kết quả
+            const preloadHighResImages = () => {
+                Object.values(MONEY_DATA).forEach(item => {
+                    const img = new Image();
+                    img.src = item.highRes;
+                });
+            };
+
+            // Vòng lặp hiệu ứng ruy băng/pháo hoa
             useEffect(() => {
                 let interval;
                 if (showOverlay) {
@@ -116,14 +105,30 @@
             }, [showOverlay]);
 
             const toggleMusic = () => {
-                if (!audioBG.current) return;
-                if (isPlaying) { audioBG.current.pause(); setIsPlaying(false); }
-                else { audioBG.current.play(); setIsPlaying(true); }
+                if (!initialized.current) {
+                    audioBG.current = new Audio('Background.mp3'); 
+                    audioBG.current.loop = true;
+                    audioCongrat.current = new Audio('Congrat.mp3');
+                    audioCongrat.current.loop = true;
+                    initialized.current = true;
+                    preloadHighResImages(); // Tải trước ảnh ngay khi nhấn play lần đầu
+                }
+
+                if (isPlaying) {
+                    audioBG.current.pause();
+                    setIsPlaying(false);
+                } else {
+                    audioBG.current.play().catch(() => {});
+                    setIsPlaying(true);
+                }
             };
 
             const handleSpin = () => {
                 if (isSpinning) return;
-                if (audioBG.current && isPlaying) { audioBG.current.volume = 1; audioBG.current.play(); }
+                
+                // Nếu chưa bật nhạc mà bấm quay, tự động kích hoạt
+                if (!initialized.current) toggleMusic();
+                else if (isPlaying) { audioBG.current.volume = 1; audioBG.current.play(); }
 
                 const rule = config.rules[currentSpinIndex % config.totalSpins] || config.rules[0];
                 const valid = WHEEL_SEGMENTS.map((s, i) => ({...s, idx: i})).filter(s => s.value >= rule.min && s.value <= rule.max);
@@ -169,18 +174,19 @@
             )`;
 
             return (
-                <div className="min-h-[100dvh] w-full flex flex-col items-center pt-8 select-none overflow-hidden">
+                <div className="min-h-[100dvh] w-full flex flex-col items-center pt-8 select-none overflow-hidden" onClick={() => !initialized.current && toggleMusic()}>
                     <div className="z-10 text-center mb-6 px-4">
                         <h1 className="text-6xl font-black text-red-600 drop-shadow-xl font-serif uppercase tracking-tighter">Lì Xì</h1>
                         <p className="text-4xl md:text-5xl text-binh-ngo mt-1 uppercase italic tracking-widest">Bính Ngọ 2026</p>
                     </div>
 
-                    <div className="relative w-[330px] h-[330px] md:w-[540px] md:h-[540px]">
-                        {/* MŨI TÊN NHỎ GỌN, ĐUÔI ÉN, KHÔNG BỊ MẤT TRÊN MOBILE */}
-                        <div className="absolute top-1/2 right-0 translate-x-[15%] -translate-y-1/2 z-40 w-10 md:w-16 h-8 pointer-events-none drop-shadow-md">
-                            <svg viewBox="0 0 100 60" className="w-full h-full">
-                                <path d="M0 30 L100 5 L75 30 L100 55 Z" fill="#ff0000" stroke="#4a0000" strokeWidth="1" />
-                                <path d="M0 30 L75 30" stroke="white" strokeWidth="2" strokeOpacity="0.3" />
+                    <div className="relative w-[320px] h-[320px] md:w-[540px] md:h-[540px]">
+                        {/* MŨI TÊN SIÊU NGẮN (GIẢM 1/2), ĐƯA SÁT MÉP */}
+                        <div className="absolute top-1/2 right-0 translate-x-[40%] -translate-y-1/2 z-40 w-6 md:w-10 h-6 md:h-10 pointer-events-none drop-shadow-md">
+                            <svg viewBox="0 0 100 100" className="w-full h-full">
+                                {/* Vẽ mũi tên ngắn với đuôi én sâu */}
+                                <path d="M0 50 L100 10 L70 50 L100 90 Z" fill="#ff0000" stroke="#4a0000" strokeWidth="2" />
+                                <path d="M0 50 L70 50" stroke="white" strokeWidth="3" strokeOpacity="0.4" />
                             </svg>
                         </div>
 
@@ -195,15 +201,30 @@
                                 ))}
                             </div>
                             
-                            <div onClick={handleSpin} className="absolute z-30 w-32 h-32 md:w-56 md:h-56 bg-white rounded-full shadow-[0_0_40px_rgba(0,0,0,0.3)] flex items-center justify-center cursor-pointer border-4 border-yellow-100 active:scale-95 transition-transform">
+                            <div onClick={(e) => { e.stopPropagation(); handleSpin(); }} className="absolute z-30 w-32 h-32 md:w-56 md:h-56 bg-white rounded-full shadow-[0_0_40px_rgba(0,0,0,0.3)] flex items-center justify-center cursor-pointer border-4 border-yellow-100 active:scale-95 transition-transform">
                                 <img src="Logo.png" className="w-full h-full object-cover p-1" onError={(e)=>e.target.parentNode.innerHTML='<b class="text-red-600 text-3xl font-black">QUAY</b>'}/>
                             </div>
                         </div>
                     </div>
 
-                    {/* Cài đặt rút gọn */}
+                    {/* Điều khiển Nhạc (Dưới Trái) */}
+                    <div className="fixed bottom-6 left-6 flex gap-4 z-50">
+                        <div onClick={(e) => { e.stopPropagation(); toggleMusic(); }} className="p-4 bg-white/20 backdrop-blur-md rounded-full text-white shadow-xl cursor-pointer active:scale-90 transition-all border border-white/20">
+                            {isPlaying ? 
+                                <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16"><path d="M6 3.5a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-1 0V4a.5.5 0 0 1 .5-.5zm4 0a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-1 0V4a.5.5 0 0 1 .5-.5z"/></svg> :
+                                <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16"><path d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z"/></svg>
+                            }
+                        </div>
+                    </div>
+
+                    {/* Nút Cài đặt (Dưới Phải) */}
+                    <div onClick={(e) => { e.stopPropagation(); setShowLogin(true); }} className="fixed bottom-6 right-6 p-4 bg-white/20 backdrop-blur-md rounded-full text-white shadow-xl cursor-pointer active:scale-90 transition-all border border-white/20 z-50">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                    </div>
+
+                    {/* Cài đặt */}
                     {showSettings && (
-                        <div className="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm">
+                        <div className="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm" onClick={(e)=>e.stopPropagation()}>
                             <div className="bg-white rounded-3xl p-5 w-full max-w-xs shadow-2xl relative fade-in">
                                 <button onClick={()=>setShowSettings(false)} className="absolute top-3 right-3 text-gray-400">✕</button>
                                 <h3 className="text-lg font-black text-red-600 border-b pb-2 mb-3 uppercase text-center">Cài đặt</h3>
@@ -239,23 +260,9 @@
                         </div>
                     )}
 
-                    {/* Nút Nhạc (Dưới Trái) & Cài đặt (Dưới Phải) */}
-                    <div className="fixed bottom-6 left-6 flex gap-4">
-                        <div onClick={toggleMusic} className="p-4 bg-white/20 backdrop-blur-md rounded-full text-white shadow-xl cursor-pointer active:scale-90 transition-all border border-white/20">
-                            {isPlaying ? 
-                                <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M6 3.5a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-1 0V4a.5.5 0 0 1 .5-.5zm4 0a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-1 0V4a.5.5 0 0 1 .5-.5z"/></svg> :
-                                <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z"/></svg>
-                            }
-                        </div>
-                    </div>
-
-                    <div onClick={() => setShowLogin(true)} className="fixed bottom-6 right-6 p-4 bg-white/20 backdrop-blur-md rounded-full text-white shadow-xl cursor-pointer active:scale-90 transition-all border border-white/20">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                    </div>
-
                     {/* Login */}
                     {showLogin && (
-                        <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
+                        <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-md flex items-center justify-center p-4" onClick={(e)=>e.stopPropagation()}>
                             <div className="bg-white rounded-3xl p-8 w-full max-w-xs shadow-2xl text-center fade-in">
                                 <h3 className="text-lg font-bold mb-4">Quản lý</h3>
                                 <form onSubmit={(e) => { e.preventDefault(); if (password === '1709') { setShowLogin(false); setShowSettings(true); setPassword(''); } else { alert('Sai!'); } }}>
@@ -269,7 +276,7 @@
                         </div>
                     )}
 
-                    {/* Màn hình kết quả (TỐI GIẢN + LOOP PHÁO HOA) */}
+                    {/* Màn hình kết quả */}
                     {showOverlay && (
                         <div className="fixed inset-0 z-[150] bg-black/90 flex flex-col items-center justify-center p-4 fade-in" onClick={() => {
                             if (audioCongrat.current) { audioCongrat.current.pause(); audioCongrat.current.currentTime = 0; }
